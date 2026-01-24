@@ -26,7 +26,7 @@ const LOCAL_CONFIG_FILE = 'config.json';
 /**
  * Environment variable prefix
  */
-const ENV_PREFIX = 'RALPH_';
+const ENV_PREFIX = 'GHCRALPH_';
 
 /**
  * Load configuration from a JSON file

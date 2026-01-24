@@ -119,9 +119,38 @@ npm run build
 npm link
 ```
 
-## Basic Usage
+## Commands
 
-### Single Task
+| Command | Description |
+|---------|-------------|
+| `ghcralph init` | Initialize GitHub Copilot Ralph in a repository |
+| `ghcralph run` | Execute an agentic coding loop |
+| `ghcralph status` | Check current session status |
+| `ghcralph rollback` | Revert to a previous checkpoint |
+| `ghcralph config` | View or modify configuration |
+| `ghcralph help` | Get help for any command |
+
+Use `ghcralph <command> --help` for detailed options.
+
+## Usage
+
+### Initialize a Project
+
+```bash
+# Default initialization (local plan source)
+ghcralph init
+
+# Use GitHub Issues as plan source
+ghcralph init --github
+
+# Use local Markdown files as plan source
+ghcralph init --local
+
+# Reinitialize existing configuration
+ghcralph init --force
+```
+
+### Run Tasks
 
 ```bash
 # Inline task
@@ -129,19 +158,15 @@ ghcralph run --task "Add input validation to the login form"
 
 # Task from file
 ghcralph run --file tasks/add-validation.md
-```
 
-### Plan-Based Execution
-
-```bash
-# From local Markdown plan
+# Tasks from a Markdown plan file
 ghcralph run --plan TODO.md
 
-# From GitHub Issues
+# Tasks from GitHub Issues
 ghcralph run --github owner/repo --label "ready"
 ```
 
-### Advanced Options
+### Advanced Run Options
 
 ```bash
 # Control iterations and tokens
@@ -158,20 +183,32 @@ ghcralph run --task "Big change" --dry-run
 
 # Long-running task with timeout
 ghcralph run --task "Large refactor" --unlimited --timeout 60
+
+# Skip confirmation prompts
+ghcralph run --task "Quick fix" --force
 ```
 
-## Commands
+### Configuration Management
 
-| Command | Description |
-|---------|-------------|
-| `ghcralph init` | Initialize GitHub Copilot Ralph in a repository |
-| `ghcralph run` | Execute an agentic coding loop |
-| `ghcralph status` | Check current session status |
-| `ghcralph rollback` | Revert to a previous checkpoint |
-| `ghcralph config` | View or modify configuration |
-| `ghcralph help` | Get help for any command |
+```bash
+# View all configuration
+ghcralph config list
 
-Use `ghcralph <command> --help` for detailed options.
+# Get a specific value
+ghcralph config get maxIterations
+
+# Set a value (local)
+ghcralph config set maxIterations 20
+
+# Set a value (global)
+ghcralph config set maxIterations 20 --global
+
+# Show config file paths
+ghcralph config path
+
+# Reset to defaults
+ghcralph config reset --force
+```
 
 ## Configuration
 
@@ -189,11 +226,26 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 | `planSource` | `local` | Plan source: `github` or `local` |
 | `maxIterations` | `10` | Maximum loop iterations |
 | `maxTokens` | `100000` | Token budget |
-| `defaultModel` | `gpt-4.1` | Copilot model to use (0x multiplier) |
+| `defaultModel` | `gpt-4.1` | Copilot model to use |
 | `autoCommit` | `true` | Auto-commit after iterations |
 | `branchPrefix` | `ghcralph/` | Prefix for GitHub Copilot Ralph branches |
+| `githubRepo` | - | GitHub repository (owner/repo) for GitHub plan source |
+| `localPlanFile` | - | Path to local plan file |
 
-### Example Configuration
+### Environment Variables
+
+All configuration options can be set via environment variables with the `GHCRALPH_` prefix:
+
+```bash
+export GHCRALPH_MAX_ITERATIONS=20
+export GHCRALPH_MAX_TOKENS=50000
+export GHCRALPH_DEFAULT_MODEL=gpt-4.1
+export GHCRALPH_AUTO_COMMIT=true
+export GHCRALPH_BRANCH_PREFIX=ghcralph/
+export GHCRALPH_PLAN_SOURCE=local
+```
+
+### Example Configuration File
 
 ```json
 {
@@ -244,6 +296,43 @@ GitHub Copilot Ralph uses GitHub for AI access:
 1. **GitHub CLI** (recommended): `gh auth login`
 2. **GitHub Copilot CLI**: Ensure it's installed: `gh extension install github/gh-copilot`
 3. **Environment variable** (alternative): `GITHUB_TOKEN` or `GH_TOKEN`
+
+## Development
+
+### Building from Source
+
+```bash
+git clone https://github.com/rpothin/ghc-ralph-cli.git
+cd ghc-ralph-cli
+npm install
+npm run build
+```
+
+### Running Tests
+
+```bash
+# Run unit tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run integration tests (requires CLI artifacts)
+npm run test:integration
+```
+
+### Code Quality
+
+```bash
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Type check
+npm run typecheck
+```
 
 ## Troubleshooting
 
