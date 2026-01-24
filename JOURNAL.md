@@ -126,3 +126,20 @@
 - XDG Base Directory spec for Unix, APPDATA for Windows
 - Environment variables use SCREAMING_SNAKE_CASE with RALPH_ prefix
 - Type-safe config key validation
+
+## 2026-01-24 - Issue #7: Local Markdown Plan Source
+
+### Completed
+- Created PlanManager interface (src/core/plan-manager.ts) for plan sources
+- Implemented markdown-parser.ts for parsing task lists and YAML frontmatter
+- Created LocalMarkdownPlan class implementing PlanManager interface
+- Added --plan/-p option to run command
+- Supports nested task hierarchies (indented items)
+- Updates checkboxes in source file when tasks complete
+
+### Technical Decisions
+- Task IDs generated from line numbers (task-N)
+- Frontmatter parsed with simple key:value parsing
+- Indentation level calculated assuming 2 spaces per level
+- Parent task tracking via stack for nested tasks
+- Task status persisted by updating checkbox in source Markdown

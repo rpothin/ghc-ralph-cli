@@ -290,7 +290,7 @@ Create a configuration system that supports per-session setup and persisted pref
 Support reading and tracking tasks from local Markdown files with checkbox syntax.
 
 **Acceptance Criteria**:
-- [ ] Parse Markdown files with task lists:
+- [x] Parse Markdown files with task lists:
   ```markdown
   # Project Tasks
 
@@ -301,7 +301,7 @@ Support reading and tracking tasks from local Markdown files with checkbox synta
   ## Completed
   - [x] Set up project structure
   ```
-- [ ] Support task metadata in YAML frontmatter:
+- [x] Support task metadata in YAML frontmatter:
   ```markdown
   ---
   title: Add user authentication
@@ -309,10 +309,10 @@ Support reading and tracking tasks from local Markdown files with checkbox synta
   estimate: 3 iterations
   ---
   ```
-- [ ] Implement `PlanManager` interface with `LocalMarkdownPlan` implementation
-- [ ] Track progress by updating checkboxes in source file
-- [ ] Support nested task hierarchies (sub-tasks as indented items)
-- [ ] Add `ralph run --plan <file.md>` option
+- [x] Implement `PlanManager` interface with `LocalMarkdownPlan` implementation
+- [x] Track progress by updating checkboxes in source file
+- [x] Support nested task hierarchies (sub-tasks as indented items)
+- [x] Add `ralph run --plan <file.md>` option
 
 **Labels**: `phase-2`, `plan-management`, `priority-high`
 

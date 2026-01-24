@@ -8,12 +8,13 @@ import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
-import { LoopEngine } from '../core/index.js';
+import { LoopEngine, LocalMarkdownPlan } from '../core/index.js';
 import type { Task } from '../types/index.js';
 
 export interface RunOptions {
   task?: string;
   file?: string;
+  plan?: string;
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -99,23 +100,39 @@ export function registerRunCommand(program: Command): void {
     .description('Execute an agentic coding loop')
     .option('-t, --task <description>', 'Task to execute (inline)')
     .option('-f, --file <path>', 'Read task from file')
+    .option('-p, --plan <path>', 'Read tasks from a Markdown plan file')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
     .option('--dry-run', 'Show what would happen without executing')
     .action(async (options: RunOptions) => {
-      if (!options.task && !options.file) {
-        error('Please provide a task with --task or --file');
+      if (!options.task && !options.file && !options.plan) {
+        error('Please provide a task with --task, --file, or --plan');
         process.exit(1);
       }
 
       const maxIterations = parseInt(options.maxIterations, 10);
       const maxTokens = options.maxTokens ? parseInt(options.maxTokens, 10) : 100000;
 
-      // Create task
+      // Create task - either from options or from plan file
       let task: Task;
+      let planManager: LocalMarkdownPlan | null = null;
+
       try {
-        task = await createTask(options);
+        if (options.plan) {
+          // Load task from Markdown plan file
+          planManager = new LocalMarkdownPlan(options.plan);
+          await planManager.initialize();
+          const nextTask = await planManager.getNextTask();
+          if (!nextTask) {
+            success('All tasks in the plan are complete!');
+            return;
+          }
+          task = nextTask;
+          info(`Selected task from plan: ${task.title}`);
+        } else {
+          task = await createTask(options);
+        }
       } catch (err) {
         error(err instanceof Error ? err.message : String(err));
         process.exit(1);
@@ -125,6 +142,9 @@ export function registerRunCommand(program: Command): void {
       console.log('');
       console.log(heading('🤖 Ralph CLI - Run'));
       console.log('');
+      if (options.plan) {
+        console.log(`  ${dim('Plan:')} ${code(options.plan)}`);
+      }
       console.log(`  ${dim('Task:')} ${task.title}`);
       console.log(`  ${dim('Model:')} ${code(options.model ?? 'gpt-4')}`);
       console.log(`  ${dim('Max iterations:')} ${maxIterations}`);
@@ -205,10 +225,18 @@ export function registerRunCommand(program: Command): void {
         console.log('');
 
         if (finalState.status === 'completed') {
+          // Mark task as complete in plan file if using a plan
+          if (planManager) {
+            await planManager.completeTask(task.id);
+            info(`Task marked as complete in plan file`);
+          }
           success('Loop completed successfully');
         } else if (finalState.status === 'stopped') {
           warn('Loop was stopped by user');
         } else if (finalState.status === 'failed') {
+          if (planManager) {
+            await planManager.failTask(task.id);
+          }
           error('Loop failed');
           process.exit(1);
         }

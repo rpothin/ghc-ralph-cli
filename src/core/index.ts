@@ -28,3 +28,10 @@ export {
 export type { RalphConfiguration, ConfigKey } from './config-manager.js';
 
 export type { PlanSource } from './config-schema.js';
+
+export type { PlanManager, TaskFilter, PlanSourceType } from './plan-manager.js';
+
+export { parseMarkdownPlan, toTask, updateTaskCheckbox } from './markdown-parser.js';
+export type { ParsedMarkdownTask, ParsedMarkdownPlan } from './markdown-parser.js';
+
+export { LocalMarkdownPlan } from './local-markdown-plan.js';
