@@ -35,3 +35,6 @@ export { parseMarkdownPlan, toTask, updateTaskCheckbox } from './markdown-parser
 export type { ParsedMarkdownTask, ParsedMarkdownPlan } from './markdown-parser.js';
 
 export { LocalMarkdownPlan } from './local-markdown-plan.js';
+
+export { GitHubPlan } from './github-plan.js';
+export type { GitHubPlanConfig } from './github-plan.js';

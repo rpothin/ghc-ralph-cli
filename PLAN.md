@@ -326,19 +326,19 @@ Support reading and tracking tasks from local Markdown files with checkbox synta
 Support using GitHub Issues as the source of tasks for the agentic loop.
 
 **Acceptance Criteria**:
-- [ ] Implement `GitHubPlan` class implementing `PlanManager` interface
-- [ ] Support issue filtering options:
+- [x] Implement `GitHubPlan` class implementing `PlanManager` interface
+- [x] Support issue filtering options:
   - `--label, -l <label>`: Only process issues with this label (guardrail)
   - `--milestone <name>`: Only process issues in this milestone
   - `--assignee <user>`: Filter by assignee
-- [ ] Support both flat issues and parent/child (sub-issues) structures
-- [ ] Detect issue structure during `ralph init`:
+- [x] Support both flat issues and parent/child (sub-issues) structures
+- [x] Detect issue structure during `ralph init`:
   - Prompt: "Are you using sub-issues (parent/child) or flat issues?"
-- [ ] When starting work on an issue:
+- [x] When starting work on an issue:
   - Assign logged-in user to the issue
   - Add "in-progress" label (configurable label name)
-- [ ] Add progress comments to issues during loop execution
-- [ ] Mark issue as complete when task finishes successfully
+- [x] Add progress comments to issues during loop execution
+- [x] Mark issue as complete when task finishes successfully
 
 **Example Usage**:
 ```bash

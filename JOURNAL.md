@@ -143,3 +143,20 @@
 - Indentation level calculated assuming 2 spaces per level
 - Parent task tracking via stack for nested tasks
 - Task status persisted by updating checkbox in source Markdown
+
+## 2026-01-24 - Issue #8: GitHub Issues Plan Source
+
+### Completed
+- Created GitHubPlan class implementing PlanManager interface
+- Added --github/-g option to run command (format: owner/repo)
+- Support issue filtering: --label, --milestone, --assignee
+- When starting task: assigns current user, adds "in-progress" label
+- Adds progress comments to issues during execution
+- Closes issue when task completes successfully
+- Falls back gracefully when operations fail
+
+### Technical Decisions
+- Uses @octokit/rest for GitHub API access
+- Task IDs formatted as github-{issue_number}
+- Default in-progress label is "in-progress" (configurable)
+- Comments enabled by default (configurable via addComments)

@@ -8,13 +8,17 @@ import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
-import { LoopEngine, LocalMarkdownPlan } from '../core/index.js';
+import { LoopEngine, LocalMarkdownPlan, GitHubPlan, type PlanManager } from '../core/index.js';
 import type { Task } from '../types/index.js';
 
 export interface RunOptions {
   task?: string;
   file?: string;
   plan?: string;
+  github?: string;
+  label?: string;
+  milestone?: string;
+  assignee?: string;
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -101,25 +105,67 @@ export function registerRunCommand(program: Command): void {
     .option('-t, --task <description>', 'Task to execute (inline)')
     .option('-f, --file <path>', 'Read task from file')
     .option('-p, --plan <path>', 'Read tasks from a Markdown plan file')
+    .option('-g, --github <owner/repo>', 'Use GitHub Issues as plan source')
+    .option('-l, --label <label>', 'Filter GitHub issues by label')
+    .option('--milestone <name>', 'Filter GitHub issues by milestone')
+    .option('--assignee <user>', 'Filter GitHub issues by assignee')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
     .option('--dry-run', 'Show what would happen without executing')
     .action(async (options: RunOptions) => {
-      if (!options.task && !options.file && !options.plan) {
-        error('Please provide a task with --task, --file, or --plan');
+      if (!options.task && !options.file && !options.plan && !options.github) {
+        error('Please provide a task with --task, --file, --plan, or --github');
         process.exit(1);
       }
 
       const maxIterations = parseInt(options.maxIterations, 10);
       const maxTokens = options.maxTokens ? parseInt(options.maxTokens, 10) : 100000;
 
-      // Create task - either from options or from plan file
+      // Create task - either from options or from plan source
       let task: Task;
-      let planManager: LocalMarkdownPlan | null = null;
+      let planManager: PlanManager | null = null;
 
       try {
-        if (options.plan) {
+        if (options.github) {
+          // Parse owner/repo
+          const parts = options.github.split('/');
+          if (parts.length !== 2) {
+            error('GitHub repository must be in format: owner/repo');
+            process.exit(1);
+          }
+          const [owner, repo] = parts;
+          if (!owner || !repo) {
+            error('GitHub repository must be in format: owner/repo');
+            process.exit(1);
+          }
+
+          // Load task from GitHub Issues
+          const ghConfig: {
+            owner: string;
+            repo: string;
+            label?: string;
+            milestone?: string;
+            assignee?: string;
+          } = {
+            owner,
+            repo,
+          };
+          if (options.label) ghConfig.label = options.label;
+          if (options.milestone) ghConfig.milestone = options.milestone;
+          if (options.assignee) ghConfig.assignee = options.assignee;
+
+          planManager = new GitHubPlan(ghConfig);
+          await planManager.initialize();
+          const nextTask = await planManager.getNextTask();
+          if (!nextTask) {
+            success('No pending issues found!');
+            return;
+          }
+          task = nextTask;
+          await planManager.startTask(task.id);
+          info(`Selected issue from GitHub: ${task.title}`);
+        } else if (options.plan) {
           // Load task from Markdown plan file
           planManager = new LocalMarkdownPlan(options.plan);
           await planManager.initialize();
@@ -142,7 +188,12 @@ export function registerRunCommand(program: Command): void {
       console.log('');
       console.log(heading('🤖 Ralph CLI - Run'));
       console.log('');
-      if (options.plan) {
+      if (options.github) {
+        console.log(`  ${dim('Source:')} GitHub Issues (${code(options.github)})`);
+        if (options.label) {
+          console.log(`  ${dim('Label filter:')} ${code(options.label)}`);
+        }
+      } else if (options.plan) {
         console.log(`  ${dim('Plan:')} ${code(options.plan)}`);
       }
       console.log(`  ${dim('Task:')} ${task.title}`);
