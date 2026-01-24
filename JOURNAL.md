@@ -762,3 +762,32 @@ Review the failures above and continue working on the task.
 **Tests Added**: 19 new tests for feedback builder
 
 **Total Tests**: 243 passing
+
+### Issue #4 & #5: Context Accumulation & Complex Prompt - FIXED
+
+**Problem #4**: Long-running context windows cause the model to "drift" or become confused. The original Ralph pattern intentionally discards conversation history and starts fresh each iteration.
+
+**Problem #5**: The prompt included meta-information (iteration counts, token usage) that is noise for the AI. The AI should focus on the task and current state, not orchestration details.
+
+**Solution**: Enhanced ContextBuilder (`src/core/context-builder.ts`)
+
+#### New Configuration Options
+| Option | Default | Description |
+|--------|---------|-------------|
+| `freshContextPerIteration` | `true` | Skip previous iteration summaries |
+| `includeMetaInfo` | `false` | Skip iteration/token counts |
+
+#### Simplified Default Prompt Template
+- Removed iteration counts and token tracking
+- Added structured ACTION format examples directly in template
+- Rely on git diff as primary source of "what has been done"
+- Clear completion criteria: "Use [ACTION:COMPLETE] when tests pass"
+
+#### Migration Path
+For backwards compatibility:
+- Set `freshContextPerIteration: false` to include previous progress
+- Set `includeMetaInfo: true` to use legacy template with iteration counts
+
+**Tests Updated**: Added 2 new tests for fresh context behavior
+
+**Total Tests**: 245 passing

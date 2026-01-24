@@ -17,9 +17,49 @@ import type { IterationRecord } from './loop-state.js';
 const execAsync = promisify(exec);
 
 /**
- * Default Ralph prompt template
+ * Default Ralph prompt template (simplified per Ralph pattern)
  */
 const DEFAULT_PROMPT_TEMPLATE = `You are an expert software engineer. Your task is: {task_title}
+
+## Task Description
+{task_content}
+
+{state_section}
+{context_section}
+{previous_progress}
+{feedback_section}
+
+## Output Format
+Use structured ACTION blocks to make changes:
+
+[ACTION:CREATE]
+path: <file path>
+\`\`\`
+<file content>
+\`\`\`
+
+[ACTION:EDIT]
+path: <file path>
+[OLD]
+<exact text to replace>
+[NEW]
+<replacement text>
+
+[ACTION:EXECUTE]
+command: <shell command>
+
+[ACTION:COMPLETE]
+reason: <why the task is done>
+
+## Instructions
+- Make small, focused changes
+- Test your changes with [ACTION:EXECUTE]
+- Use [ACTION:COMPLETE] when tests pass and task is done`;
+
+/**
+ * Legacy prompt template with meta info (for backwards compatibility)
+ */
+const LEGACY_PROMPT_TEMPLATE = `You are an expert software engineer. Your task is: {task_title}
 
 ## Task Description
 {task_content}
@@ -55,6 +95,18 @@ export interface ContextBuilderConfig {
   gitHistoryLimit?: number;
   /** Whether to include project structure */
   includeProjectStructure?: boolean;
+  /** 
+   * Fresh context per iteration (Ralph pattern core principle)
+   * When true, previous iteration summaries are NOT included.
+   * The AI should rely on filesystem state (git diff) instead.
+   */
+  freshContextPerIteration?: boolean;
+  /**
+   * Whether to include meta info like iteration counts in prompt.
+   * Default: true (for backwards compatibility)
+   * Set to false to simplify prompts (Ralph pattern recommendation)
+   */
+  includeMetaInfo?: boolean;
 }
 
 /**
@@ -66,6 +118,8 @@ const DEFAULT_CONFIG: ContextBuilderConfig = {
   includeGitHistory: true,
   gitHistoryLimit: 5,
   includeProjectStructure: true,
+  freshContextPerIteration: true, // Ralph pattern: rely on filesystem, not history
+  includeMetaInfo: false, // Ralph pattern: don't include iteration/token counts
 };
 
 /**
@@ -103,13 +157,21 @@ export class ContextBuilder {
     maxIterations: number,
     tokensUsed: number,
     maxTokens: number,
-    previousIterations: IterationRecord[] = []
+    previousIterations: IterationRecord[] = [],
+    feedbackSection?: string
   ): Promise<BuiltContext> {
     const filesIncluded: string[] = [];
     let truncated = false;
 
-    // Start with base template
-    const template = this.config.promptTemplate ?? DEFAULT_PROMPT_TEMPLATE;
+    // Select template based on configuration
+    let template: string;
+    if (this.config.promptTemplate) {
+      template = this.config.promptTemplate;
+    } else if (this.config.includeMetaInfo) {
+      template = LEGACY_PROMPT_TEMPLATE;
+    } else {
+      template = DEFAULT_PROMPT_TEMPLATE;
+    }
 
     // Build context sections
     const contextParts: string[] = [];
@@ -130,7 +192,8 @@ export class ContextBuilder {
       filesIncluded.push(...keywordFiles.files);
     }
 
-    // 3. Add git diff (current changes)
+    // 3. Add git diff (current changes) - CRITICAL for Ralph pattern
+    // This is the primary way the AI knows what has been done
     if (this.config.includeGitDiff) {
       const gitDiff = await this.getGitDiff();
       if (gitDiff && !this.exceedsTokenLimit(contextParts.join('\n'), gitDiff)) {
@@ -155,7 +218,19 @@ export class ContextBuilder {
     }
 
     // Build previous progress section
-    const previousProgress = this.buildPreviousProgress(previousIterations);
+    // In fresh context mode (Ralph pattern), we skip this - rely on git diff instead
+    let previousProgress = '';
+    if (!this.config.freshContextPerIteration) {
+      previousProgress = this.buildPreviousProgress(previousIterations);
+    }
+
+    // Build state section (only if includeMetaInfo is true)
+    let stateSection = '';
+    if (this.config.includeMetaInfo) {
+      stateSection = `## Current State
+- Iteration: ${iteration} of ${maxIterations}
+- Tokens used: ${tokensUsed} of ${maxTokens}`;
+    }
 
     // Build context section
     const contextSection = contextParts.length > 0 
@@ -170,8 +245,13 @@ export class ContextBuilder {
       .replace('{max_iterations}', String(maxIterations))
       .replace('{tokens_used}', String(tokensUsed))
       .replace('{max_tokens}', String(maxTokens))
+      .replace('{state_section}', stateSection)
       .replace('{context_section}', contextSection)
-      .replace('{previous_progress}', previousProgress);
+      .replace('{previous_progress}', previousProgress)
+      .replace('{feedback_section}', feedbackSection ?? '');
+
+    // Clean up multiple consecutive newlines
+    prompt = prompt.replace(/\n{3,}/g, '\n\n').trim();
 
     // Estimate token count
     const estimatedTokens = this.estimateTokens(prompt);

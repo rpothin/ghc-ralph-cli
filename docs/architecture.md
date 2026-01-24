@@ -456,8 +456,8 @@ graph LR
 | **No file operations** | AI describes changes but nothing happens | Response not parsed for file operations | ✅ FIXED |
 | **No objective exit criteria** | AI declares done but tests may fail | No external verification | ✅ FIXED |
 | **No feedback loop** | AI can't verify its changes worked | No mechanism to show execution results | ✅ FIXED |
-| **No structured output** | AI returns free-form text | Prompt doesn't specify output format | 🔄 In Progress |
-| **Task verification loop** | AI keeps verifying same task | No clear completion signal expected | 🔄 In Progress |
+| **Context accumulation** | Model drifts with long context | Conversation history accumulates | ✅ FIXED |
+| **Complex prompt template** | Meta-info confuses weaker models | Iteration/token counts in prompt | ✅ FIXED |
 | **Model sensitivity** | Weaker models perform poorly | Prompt relies on implicit understanding | 🔄 In Progress |
 
 ### Current vs Expected Flow
@@ -655,6 +655,46 @@ Received output: 0
 
 ### Next Steps
 Review the failures above and continue working on the task.
+```
+
+### 2.4 Fresh Context per Iteration ✅ IMPLEMENTED
+
+The context builder now supports the Ralph pattern's core principle: fresh context per iteration.
+
+**Problem**: Accumulated conversation history causes "context rot" - the model drifts and gets confused by long context windows.
+
+**Solution**: Modified `src/core/context-builder.ts` to:
+- Default to `freshContextPerIteration: true` - previous iteration summaries are NOT included
+- Default to `includeMetaInfo: false` - no iteration/token counts in prompt
+- Rely on git diff as primary source of "what has been done"
+
+**Configuration Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `freshContextPerIteration` | `true` | Skip previous iteration summaries |
+| `includeMetaInfo` | `false` | Skip iteration/token counts |
+| `includeGitDiff` | `true` | Include current changes (essential!) |
+
+**Prompt Template Changes:**
+
+The default prompt template is now simplified and includes structured ACTION format:
+```
+You are an expert software engineer. Your task is: {task_title}
+
+## Task Description
+{task_content}
+
+{context_section}
+{feedback_section}
+
+## Output Format
+Use structured ACTION blocks to make changes:
+[ACTION:CREATE] / [ACTION:EDIT] / [ACTION:EXECUTE] / [ACTION:COMPLETE]
+
+## Instructions
+- Make small, focused changes
+- Test your changes with [ACTION:EXECUTE]
+- Use [ACTION:COMPLETE] when tests pass and task is done
 ```
 
 ### 3. Enhanced Prompt Template

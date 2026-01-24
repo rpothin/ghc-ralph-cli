@@ -121,8 +121,8 @@ This explicit format compensates for weaker instruction-following.
 | **🔴 Critical** | No file operations         | Implement Response Parser + Action Executor, or use agentic Copilot mode | ✅ FIXED |
 | **🔴 Critical** | No objective exit criteria | Add stop hook that runs tests/build before allowing loop exit            | ✅ FIXED |
 | **🔴 Critical** | No feedback loop           | Feed test output and git diff to next iteration                          | ✅ FIXED |
-| **🟡 High**     | Context accumulation       | Reset or minimize context between iterations; rely on filesystem state   | ⏳ Pending |
-| **🟡 High**     | Complex prompt template    | Simplify; remove meta-info like iteration/token counts                   | ⏳ Pending |
+| **🟡 High**     | Context accumulation       | Reset or minimize context between iterations; rely on filesystem state   | ✅ FIXED |
+| **🟡 High**     | Complex prompt template    | Simplify; remove meta-info like iteration/token counts                   | ✅ FIXED |
 | **🟢 Medium**   | Model compensation         | Use explicit structured output format for weaker models                  | ⏳ Pending |
 
 ---

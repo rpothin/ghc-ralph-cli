@@ -52,7 +52,7 @@ describe('ContextBuilder', () => {
   });
 
   describe('buildContext', () => {
-    it('should build a basic context prompt', async () => {
+    it('should build a basic context prompt with simplified format by default', async () => {
       const builder = new ContextBuilder({
         includeGitDiff: false,
         includeGitHistory: false,
@@ -64,16 +64,36 @@ describe('ContextBuilder', () => {
 
       expect(result.prompt).toContain('Add user authentication');
       expect(result.prompt).toContain('Implement login and logout functionality');
-      expect(result.prompt).toContain('Iteration: 1 of 10');
+      // Default mode: no meta info (Ralph pattern)
+      expect(result.prompt).not.toContain('Iteration: 1 of 10');
+      // Should include action format instructions
+      expect(result.prompt).toContain('[ACTION:CREATE]');
+      expect(result.prompt).toContain('[ACTION:COMPLETE]');
       expect(result.estimatedTokens).toBeGreaterThan(0);
       expect(result.truncated).toBe(false);
     });
 
-    it('should include previous iteration information', async () => {
+    it('should include meta info when includeMetaInfo is true (legacy mode)', async () => {
       const builder = new ContextBuilder({
         includeGitDiff: false,
         includeGitHistory: false,
         includeProjectStructure: false,
+        includeMetaInfo: true, // Legacy mode
+      }, tempDir);
+
+      const task = createTestTask();
+      const result = await builder.buildContext(task, 1, 10, 0, 100000);
+
+      expect(result.prompt).toContain('Add user authentication');
+      expect(result.prompt).toContain('Iteration: 1 of 10');
+    });
+
+    it('should include previous iteration information when freshContextPerIteration is false', async () => {
+      const builder = new ContextBuilder({
+        includeGitDiff: false,
+        includeGitHistory: false,
+        includeProjectStructure: false,
+        freshContextPerIteration: false, // Legacy mode: include previous progress
       }, tempDir);
 
       const task = createTestTask();
@@ -92,6 +112,33 @@ describe('ContextBuilder', () => {
 
       expect(result.prompt).toContain('Iteration 1');
       expect(result.prompt).toContain('Created auth module');
+    });
+
+    it('should skip previous iteration info when freshContextPerIteration is true (default)', async () => {
+      const builder = new ContextBuilder({
+        includeGitDiff: false,
+        includeGitHistory: false,
+        includeProjectStructure: false,
+        // freshContextPerIteration: true is the default
+      }, tempDir);
+
+      const task = createTestTask();
+      const previousIterations = [
+        {
+          iteration: 1,
+          startedAt: new Date(),
+          endedAt: new Date(),
+          tokensUsed: 500,
+          success: true,
+          summary: 'Created auth module',
+        },
+      ];
+
+      const result = await builder.buildContext(task, 2, 10, 500, 100000, previousIterations);
+
+      // Should NOT contain previous iteration info - rely on git diff instead
+      expect(result.prompt).not.toContain('Previous Progress');
+      expect(result.prompt).not.toContain('Created auth module');
     });
 
     it('should include explicit context files when provided', async () => {
