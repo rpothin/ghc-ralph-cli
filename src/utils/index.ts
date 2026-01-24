@@ -37,3 +37,4 @@ export function getPlatform(): 'windows' | 'macos' | 'linux' {
 export * from './output.js';
 export * from './shell.js';
 export * from './paths.js';
+export * from './validation.js';

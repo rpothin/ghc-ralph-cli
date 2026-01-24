@@ -6,7 +6,7 @@
 
 import fs from 'node:fs/promises';
 import type { Command } from 'commander';
-import { info, success, error, warn, debug, spinner, heading, code, dim } from '../utils/index.js';
+import { info, success, error, warn, debug, spinner, heading, code, dim, parsePositiveInt, parseNonNegativeInt } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
 import {
   LoopEngine,
@@ -156,9 +156,33 @@ See also:
         process.exit(1);
       }
 
-      const maxIterations = parseInt(options.maxIterations, 10);
-      const maxTokens = options.maxTokens ? parseInt(options.maxTokens, 10) : 100000;
-      const maxDurationMinutes = options.timeout ? parseInt(options.timeout, 10) : 0;
+      // Validate numeric inputs
+      const maxIterationsResult = parsePositiveInt(options.maxIterations, 'max-iterations');
+      if (!maxIterationsResult.valid) {
+        error(maxIterationsResult.error ?? 'Invalid max-iterations value');
+        process.exit(1);
+      }
+      const maxIterations = maxIterationsResult.value!;
+
+      let maxTokens = 100000;
+      if (options.maxTokens) {
+        const maxTokensResult = parsePositiveInt(options.maxTokens, 'max-tokens');
+        if (!maxTokensResult.valid) {
+          error(maxTokensResult.error ?? 'Invalid max-tokens value');
+          process.exit(1);
+        }
+        maxTokens = maxTokensResult.value!;
+      }
+
+      let maxDurationMinutes = 0;
+      if (options.timeout) {
+        const timeoutResult = parseNonNegativeInt(options.timeout, 'timeout');
+        if (!timeoutResult.valid) {
+          error(timeoutResult.error ?? 'Invalid timeout value');
+          process.exit(1);
+        }
+        maxDurationMinutes = timeoutResult.value!;
+      }
 
       // Validate iteration limit
       if (maxIterations > 50 && !options.unlimited) {

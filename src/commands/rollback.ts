@@ -7,7 +7,7 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { Command } from 'commander';
-import { info, success, warn, error, dim, heading, code } from '../utils/index.js';
+import { info, success, warn, error, dim, heading, code, parsePositiveInt } from '../utils/index.js';
 
 const execAsync = promisify(exec);
 
@@ -200,7 +200,15 @@ See also:
       }
 
       // Rollback N iterations
-      const iterations = options.iterations ? parseInt(options.iterations, 10) : 1;
+      let iterations = 1;
+      if (options.iterations) {
+        const iterationsResult = parsePositiveInt(options.iterations, 'iterations');
+        if (!iterationsResult.valid) {
+          error(iterationsResult.error ?? 'Invalid iterations value');
+          return;
+        }
+        iterations = iterationsResult.value!;
+      }
       const commits = await getRalphCommits(iterations + 1);
       
       if (commits.length < iterations) {
