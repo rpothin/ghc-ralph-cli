@@ -13,7 +13,7 @@ The script should accept two numbers and an operation as arguments.
 
 ### Phase 1: Addition
 - [x] Create calculator.sh with basic structure
-- [ ] Implement addition operation (+)
+- [x] Implement addition operation (+)
 - [ ] Handle basic input validation
 - [ ] Return result to stdout
 
