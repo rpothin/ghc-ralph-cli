@@ -496,14 +496,14 @@ ralph: iteration 3 - Added error display UI
 Provide simple commands to undo changes made during Ralph sessions.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph rollback` with options:
+- [x] Implement `ralph rollback` with options:
   - `ralph rollback`: Undo last iteration
   - `ralph rollback --iterations <n>`: Undo last N iterations
   - `ralph rollback --to <commit>`: Rollback to specific checkpoint
   - `ralph rollback --all`: Undo entire session (reset to session start)
-- [ ] Show diff preview before rollback (unless `--force`)
-- [ ] Update progress log after rollback
-- [ ] Preserve rollback history for audit trail
+- [x] Show diff preview before rollback (unless `--force`)
+- [x] Update progress log after rollback
+- [x] Preserve rollback history for audit trail
 
 **Example Usage**:
 ```bash

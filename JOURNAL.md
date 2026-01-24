@@ -231,3 +231,21 @@
 - Supports soft rollback (keeps changes) and hard rollback (discards)
 - Can rollback by N iterations or to specific commit hash
 - Message prefix configurable (default: "ralph:")
+
+## 2026-01-24 - Issue #13: Rollback Command Implementation
+
+### Completed
+- Enhanced 'ralph rollback' command with full functionality
+- Added --iterations <n> to undo N iterations
+- Added --to <hash> to rollback to specific commit
+- Added --all to undo entire Ralph session
+- Added --list to show available Ralph checkpoints
+- Shows preview of files affected before rollback
+- Requires --force flag for all destructive operations
+- Uses git log to find Ralph commits (by "ralph:" prefix)
+
+### Technical Decisions
+- Uses hard reset (git reset --hard) for rollback
+- Finds pre-session commit by looking for parent of first Ralph commit
+- Lists up to 20 recent checkpoints with --list
+- Shows up to 5 affected files in preview, with count of remaining
