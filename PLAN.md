@@ -16,13 +16,13 @@
 
 ### Suggested Repository Details
 
-| Attribute | Recommendation |
-|-----------|----------------|
-| **Name** | `ralph-cli` |
-| **Description** | "A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot" |
+| Attribute       | Recommendation                                                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**        | `ralph-cli`                                                                                                                                    |
+| **Description** | "A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot"                          |
 | **Topics/Tags** | `cli`, `copilot`, `agentic-coding`, `ralph-wiggum`, `automation`, `developer-tools`, `ai-coding`, `github-copilot`, `nodejs`, `cross-platform` |
-| **License** | MIT |
-| **Visibility** | Public |
+| **License**     | MIT                                                                                                                                            |
+| **Visibility**  | Public                                                                                                                                         |
 
 ### Alternative Names Considered
 - `ralph-loop` - More descriptive of the core function
@@ -91,10 +91,10 @@
 Set up the foundational project structure for Ralph CLI.
 
 **Acceptance Criteria**:
-- [ ] Initialize npm project with appropriate `package.json`
-- [ ] Configure TypeScript with strict mode
-- [ ] Set up ESLint and Prettier for code quality
-- [ ] Create directory structure:
+- [x] Initialize npm project with appropriate `package.json`
+- [x] Configure TypeScript with strict mode
+- [x] Set up ESLint and Prettier for code quality
+- [x] Create directory structure:
   ```
   src/
     commands/       # CLI command implementations
@@ -105,10 +105,10 @@ Set up the foundational project structure for Ralph CLI.
   docs/             # Documentation
   examples/         # Example configurations and patterns
   ```
-- [ ] Configure `tsconfig.json` for Node.js target
-- [ ] Set up build scripts for cross-platform distribution
-- [ ] Add `.gitignore`, `.editorconfig`, and other standard files
-- [ ] Create initial `README.md` with project vision
+- [x] Configure `tsconfig.json` for Node.js target
+- [x] Set up build scripts for cross-platform distribution
+- [x] Add `.gitignore`, `.editorconfig`, and other standard files
+- [x] Create initial `README.md` with project vision
 
 **Technical Notes**:
 - Use Node.js 18+ as minimum version (LTS)
@@ -128,16 +128,16 @@ Set up the foundational project structure for Ralph CLI.
 Create the main CLI entry point that routes to subcommands and handles global options.
 
 **Acceptance Criteria**:
-- [ ] Create `bin/ralph` entry point
-- [ ] Implement command routing for: `init`, `run`, `status`, `rollback`, `config`
-- [ ] Add global flags:
+- [x] Create `bin/ralph` entry point
+- [x] Implement command routing for: `init`, `run`, `status`, `rollback`, `config`
+- [x] Add global flags:
   - `--version` / `-v`: Show version
   - `--help` / `-h`: Show help
   - `--verbose`: Enable verbose logging
   - `--quiet`: Suppress non-essential output
-- [ ] Implement colored, formatted console output
-- [ ] Add shell detection (Bash, PowerShell, Zsh, Fish, CMD)
-- [ ] Ensure cross-platform path handling
+- [x] Implement colored, formatted console output
+- [x] Add shell detection (Bash, PowerShell, Zsh, Fish, CMD)
+- [x] Ensure cross-platform path handling
 
 **Technical Notes**:
 - Use `chalk` or `picocolors` for terminal colors
@@ -156,15 +156,15 @@ Create the main CLI entry point that routes to subcommands and handles global op
 Implement the integration layer with the GitHub Copilot SDK to power the agentic loop.
 
 **Acceptance Criteria**:
-- [ ] Install and configure `@anthropic-ai/sdk` or appropriate Copilot SDK package
-- [ ] Implement authentication flow (leverage existing GitHub CLI auth if available)
-- [ ] Create `CopilotAgent` class with methods:
+- [x] Install and configure `@anthropic-ai/sdk` or appropriate Copilot SDK package
+- [x] Implement authentication flow (leverage existing GitHub CLI auth if available)
+- [x] Create `CopilotAgent` class with methods:
   - `initialize()`: Set up agent session
   - `execute(prompt: string)`: Send prompt and get response
   - `getTokenUsage()`: Return token consumption metrics
-- [ ] Handle API errors gracefully with retries
-- [ ] Implement token counting and usage tracking
-- [ ] Support model selection via configuration
+- [x] Handle API errors gracefully with retries
+- [x] Implement token counting and usage tracking
+- [x] Support model selection via configuration
 
 **Technical Notes**:
 - Check for GitHub Copilot CLI authentication first
@@ -183,12 +183,12 @@ Implement the integration layer with the GitHub Copilot SDK to power the agentic
 Build the heart of Ralph CLI - the autonomous loop that repeatedly invokes the AI agent until the task is complete.
 
 **Acceptance Criteria**:
-- [ ] Create `LoopEngine` class with:
+- [x] Create `LoopEngine` class with:
   - `start(task: Task)`: Begin loop execution
   - `pause()`: Pause current loop
   - `resume()`: Resume paused loop
   - `stop()`: Gracefully stop loop
-- [ ] Implement the core loop pattern:
+- [x] Implement the core loop pattern:
   ```
   while (task not complete AND iterations < max AND tokens < limit):
     1. Build context from current state
@@ -197,9 +197,9 @@ Build the heart of Ralph CLI - the autonomous loop that repeatedly invokes the A
     4. Update progress
     5. Commit checkpoint
   ```
-- [ ] Add event emitters for loop lifecycle (start, iteration, complete, error)
-- [ ] Implement iteration tracking with timestamps
-- [ ] Create structured logging for each iteration
+- [x] Add event emitters for loop lifecycle (start, iteration, complete, error)
+- [x] Implement iteration tracking with timestamps
+- [x] Create structured logging for each iteration
 
 **Technical Notes**:
 - Use async iterators for loop control
@@ -218,17 +218,17 @@ Build the heart of Ralph CLI - the autonomous loop that repeatedly invokes the A
 Create the primary command that starts an agentic loop for a given task.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph run` command with options:
+- [x] Implement `ralph run` command with options:
   - `--task, -t <description>`: Task to execute (inline)
   - `--file, -f <path>`: Read task from file
   - `--max-iterations, -n <number>`: Maximum loop iterations (default: 10)
   - `--max-tokens <number>`: Maximum token budget
   - `--model, -m <model>`: Copilot model to use
   - `--dry-run`: Show what would happen without executing
-- [ ] Display real-time progress during execution
-- [ ] Show iteration count, token usage, and elapsed time
-- [ ] Handle Ctrl+C gracefully (save state, clean exit)
-- [ ] Output final summary on completion
+- [x] Display real-time progress during execution
+- [x] Show iteration count, token usage, and elapsed time
+- [x] Handle Ctrl+C gracefully (save state, clean exit)
+- [x] Output final summary on completion
 
 **Example Usage**:
 ```bash
@@ -249,25 +249,25 @@ ralph run -t "Fix the failing tests in src/utils" --dry-run
 Create a configuration system that supports per-session setup and persisted preferences.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph init` command that:
+- [x] Implement `ralph init` command that:
   - Detects existing git repository
   - Prompts for plan source (GitHub Issues or local Markdown)
   - Configures GitHub authentication if using Issues
   - Sets default iteration limits
   - Creates `.ralph/` directory for local state
-- [ ] Support configuration sources (in priority order):
+- [x] Support configuration sources (in priority order):
   1. Command-line flags (highest priority)
   2. Environment variables (`RALPH_*`)
   3. Session configuration (`.ralph/config.json`)
   4. Global configuration (`~/.config/ralph/config.json`)
-- [ ] Configuration options:
+- [x] Configuration options:
   - `planSource`: `"github"` | `"local"`
   - `maxIterations`: number
   - `maxTokens`: number
   - `defaultModel`: string
   - `autoCommit`: boolean
   - `branchPrefix`: string (default: `"ralph/"`)
-- [ ] Implement `ralph config` command for viewing/editing config
+- [x] Implement `ralph config` command for viewing/editing config
 
 **Technical Notes**:
 - Use interactive prompts with `inquirer` or `prompts`
@@ -290,7 +290,7 @@ Create a configuration system that supports per-session setup and persisted pref
 Support reading and tracking tasks from local Markdown files with checkbox syntax.
 
 **Acceptance Criteria**:
-- [ ] Parse Markdown files with task lists:
+- [x] Parse Markdown files with task lists:
   ```markdown
   # Project Tasks
 
@@ -301,7 +301,7 @@ Support reading and tracking tasks from local Markdown files with checkbox synta
   ## Completed
   - [x] Set up project structure
   ```
-- [ ] Support task metadata in YAML frontmatter:
+- [x] Support task metadata in YAML frontmatter:
   ```markdown
   ---
   title: Add user authentication
@@ -309,10 +309,10 @@ Support reading and tracking tasks from local Markdown files with checkbox synta
   estimate: 3 iterations
   ---
   ```
-- [ ] Implement `PlanManager` interface with `LocalMarkdownPlan` implementation
-- [ ] Track progress by updating checkboxes in source file
-- [ ] Support nested task hierarchies (sub-tasks as indented items)
-- [ ] Add `ralph run --plan <file.md>` option
+- [x] Implement `PlanManager` interface with `LocalMarkdownPlan` implementation
+- [x] Track progress by updating checkboxes in source file
+- [x] Support nested task hierarchies (sub-tasks as indented items)
+- [x] Add `ralph run --plan <file.md>` option
 
 **Labels**: `phase-2`, `plan-management`, `priority-high`
 
@@ -326,19 +326,19 @@ Support reading and tracking tasks from local Markdown files with checkbox synta
 Support using GitHub Issues as the source of tasks for the agentic loop.
 
 **Acceptance Criteria**:
-- [ ] Implement `GitHubPlan` class implementing `PlanManager` interface
-- [ ] Support issue filtering options:
+- [x] Implement `GitHubPlan` class implementing `PlanManager` interface
+- [x] Support issue filtering options:
   - `--label, -l <label>`: Only process issues with this label (guardrail)
   - `--milestone <name>`: Only process issues in this milestone
   - `--assignee <user>`: Filter by assignee
-- [ ] Support both flat issues and parent/child (sub-issues) structures
-- [ ] Detect issue structure during `ralph init`:
+- [x] Support both flat issues and parent/child (sub-issues) structures
+- [x] Detect issue structure during `ralph init`:
   - Prompt: "Are you using sub-issues (parent/child) or flat issues?"
-- [ ] When starting work on an issue:
+- [x] When starting work on an issue:
   - Assign logged-in user to the issue
   - Add "in-progress" label (configurable label name)
-- [ ] Add progress comments to issues during loop execution
-- [ ] Mark issue as complete when task finishes successfully
+- [x] Add progress comments to issues during loop execution
+- [x] Mark issue as complete when task finishes successfully
 
 **Example Usage**:
 ```bash
@@ -358,7 +358,7 @@ ralph run --label "ralph-ready" --max-iterations 10
 Create human-readable progress artifacts in Markdown format.
 
 **Acceptance Criteria**:
-- [ ] Create `.ralph/progress.md` file tracking:
+- [x] Create `.ralph/progress.md` file tracking:
   ```markdown
   # Ralph Progress Log
 
@@ -381,10 +381,10 @@ Create human-readable progress artifacts in Markdown format.
   - Files modified: src/schemas/registration.ts (new)
   - Tokens: 4,100
   ```
-- [ ] Update progress file after each iteration
-- [ ] Include git commit hashes for each checkpoint
-- [ ] Provide `ralph status` command to display current progress
-- [ ] Support `--json` flag for machine-readable output
+- [x] Update progress file after each iteration
+- [x] Include git commit hashes for each checkpoint
+- [x] Provide `ralph status` command to display current progress
+- [x] Support `--json` flag for machine-readable output
 
 **Labels**: `phase-2`, `progress-tracking`, `priority-medium`
 
@@ -398,15 +398,15 @@ Create human-readable progress artifacts in Markdown format.
 Build rich context for the AI agent including relevant code, history, and constraints.
 
 **Acceptance Criteria**:
-- [ ] Gather context automatically:
+- [x] Gather context automatically:
   - Current task description
   - Relevant files (based on task keywords)
   - Recent git history
   - Previous iteration results
   - Project structure overview
-- [ ] Implement context size management (stay within token limits)
-- [ ] Support explicit context files via `--context <glob>` flag
-- [ ] Include the "Ralph prompt" pattern:
+- [x] Implement context size management (stay within token limits)
+- [x] Support explicit context files via `--context <glob>` flag
+- [x] Include the "Ralph prompt" pattern:
   ```
   You are an expert software engineer. Your task is: {task}
   
@@ -419,7 +419,7 @@ Build rich context for the AI agent including relevant code, history, and constr
   - Explain your reasoning
   - Stop when the task is complete
   ```
-- [ ] Allow custom prompt templates via configuration
+- [x] Allow custom prompt templates via configuration
 
 **Labels**: `phase-2`, `core`, `priority-medium`
 
@@ -437,13 +437,13 @@ Build rich context for the AI agent including relevant code, history, and constr
 Ensure all Ralph operations happen in isolated git branches to protect the main codebase.
 
 **Acceptance Criteria**:
-- [ ] On `ralph run`:
+- [x] On `ralph run`:
   - If on `main`/`master`: Auto-create branch `ralph/{task-slug}-{timestamp}`
   - If on other branch: Prompt user for confirmation before proceeding
-- [ ] Branch naming options via `--branch <name>` flag
-- [ ] Verify working directory is clean before starting (or offer to stash)
-- [ ] Configure branch prefix via settings (default: `ralph/`)
-- [ ] Add `--force` flag to skip branch confirmation prompts
+- [x] Branch naming options via `--branch <name>` flag
+- [x] Verify working directory is clean before starting (or offer to stash)
+- [x] Configure branch prefix via settings (default: `ralph/`)
+- [x] Add `--force` flag to skip branch confirmation prompts
 
 **Example Flow**:
 ```
@@ -465,17 +465,17 @@ Starting loop...
 Create automatic checkpoints via git commits to enable easy rollback.
 
 **Acceptance Criteria**:
-- [ ] After each successful iteration:
+- [x] After each successful iteration:
   - Stage all modified files
   - Create commit with message: `ralph: iteration {n} - {summary}`
   - Record commit hash in progress log
-- [ ] Commit message includes:
+- [x] Commit message includes:
   - Iteration number
   - Brief summary of changes
   - Token usage for iteration
-- [ ] Skip commit if no files were modified
-- [ ] Add `--no-commit` flag to disable auto-commits
-- [ ] Ensure commits are atomic (all-or-nothing)
+- [x] Skip commit if no files were modified
+- [x] Add `--no-commit` flag to disable auto-commits
+- [x] Ensure commits are atomic (all-or-nothing)
 
 **Example Commits**:
 ```
@@ -496,14 +496,14 @@ ralph: iteration 3 - Added error display UI
 Provide simple commands to undo changes made during Ralph sessions.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph rollback` with options:
+- [x] Implement `ralph rollback` with options:
   - `ralph rollback`: Undo last iteration
   - `ralph rollback --iterations <n>`: Undo last N iterations
   - `ralph rollback --to <commit>`: Rollback to specific checkpoint
   - `ralph rollback --all`: Undo entire session (reset to session start)
-- [ ] Show diff preview before rollback (unless `--force`)
-- [ ] Update progress log after rollback
-- [ ] Preserve rollback history for audit trail
+- [x] Show diff preview before rollback (unless `--force`)
+- [x] Update progress log after rollback
+- [x] Preserve rollback history for audit trail
 
 **Example Usage**:
 ```bash
@@ -533,17 +533,17 @@ Proceed? [y/N] y
 Prevent runaway loops and excessive resource consumption.
 
 **Acceptance Criteria**:
-- [ ] Implement configurable limits:
+- [x] Implement configurable limits:
   - `maxIterations`: Hard stop after N iterations (default: 10)
   - `maxTokens`: Stop if token budget exceeded
   - `maxDuration`: Stop after N minutes (optional)
-- [ ] Display warnings at thresholds:
+- [x] Display warnings at thresholds:
   - 80% of iteration limit
   - 80% of token budget
-- [ ] Require explicit `--unlimited` flag to exceed 50 iterations
-- [ ] Add "circuit breaker" for repeated failures:
+- [x] Require explicit `--unlimited` flag to exceed 50 iterations
+- [x] Add "circuit breaker" for repeated failures:
   - If 3 consecutive iterations produce no changes, pause and prompt
-- [ ] Log all limit-related events
+- [x] Log all limit-related events
 
 **Example Output**:
 ```
@@ -565,18 +565,18 @@ Prevent runaway loops and excessive resource consumption.
 Protect existing files from accidental deletion while allowing cleanup of agent-created files.
 
 **Acceptance Criteria**:
-- [ ] Track files that existed before session start (snapshot `.ralph/baseline-files.json`)
-- [ ] For files that existed before session:
+- [x] Track files that existed before session start (snapshot `.ralph/baseline-files.json`)
+- [x] For files that existed before session:
   - Block deletion attempts
   - Log warning and continue without deleting
   - Allow override with `--allow-delete` flag
-- [ ] For files created during session:
+- [x] For files created during session:
   - Allow deletion freely (agent experiments)
-- [ ] Provide `ralph status --files` to show:
+- [x] Provide `ralph status --files` to show:
   - Files modified
   - Files created
   - Deletion attempts blocked
-- [ ] Add configuration option `allowDeleteExisting: false` (default)
+- [x] Add configuration option `allowDeleteExisting: false` (default)
 
 **Labels**: `phase-3`, `safety`, `priority-high`
 
@@ -594,16 +594,16 @@ Protect existing files from accidental deletion while allowing cleanup of agent-
 Create helpful, concise in-CLI documentation.
 
 **Acceptance Criteria**:
-- [ ] Every command has detailed `--help` output
-- [ ] Help includes:
+- [x] Every command has detailed `--help` output
+- [x] Help includes:
   - Command description
   - All available options with descriptions
   - Common usage examples
   - Related commands
-- [ ] Main `ralph --help` shows command overview
-- [ ] Add `ralph help <command>` as alias
-- [ ] Include tips for new users
-- [ ] Keep help text concise but informative
+- [x] Main `ralph --help` shows command overview
+- [x] Add `ralph help <command>` as alias
+- [x] Include tips for new users
+- [x] Keep help text concise but informative
 
 **Example**:
 ```
@@ -647,7 +647,7 @@ SEE ALSO
 Write the main README.md with clear onboarding for developers new to agentic AI coding.
 
 **Acceptance Criteria**:
-- [ ] README sections:
+- [x] README sections:
   - What is Ralph CLI? (and what is the Ralph Wiggum pattern)
   - Key Features
   - Quick Start (5-minute guide)
@@ -657,10 +657,10 @@ Write the main README.md with clear onboarding for developers new to agentic AI 
   - Safety Features
   - FAQ
   - Contributing
-- [ ] Include animated GIF/terminal recording showing basic usage
-- [ ] Add badges (npm version, license, build status)
-- [ ] Link to detailed documentation
-- [ ] Explain the philosophy (simple, safe, cross-platform)
+- [x] Include animated GIF/terminal recording showing basic usage
+- [x] Add badges (npm version, license, build status)
+- [x] Link to detailed documentation
+- [x] Explain the philosophy (simple, safe, cross-platform)
 
 **Labels**: `phase-4`, `documentation`, `priority-high`
 
@@ -674,20 +674,20 @@ Write the main README.md with clear onboarding for developers new to agentic AI 
 Document common use cases and best practices in a cookbook format.
 
 **Acceptance Criteria**:
-- [ ] Create `docs/cookbook.md` with patterns:
+- [x] Create `docs/cookbook.md` with patterns:
   - **Pattern: Bug Fix Loop** - Find and fix a reported bug
   - **Pattern: Feature Implementation** - Build a new feature step by step
   - **Pattern: Refactoring Session** - Improve code quality safely
   - **Pattern: Test Coverage** - Add tests to existing code
   - **Pattern: Documentation Sprint** - Generate/update docs
   - **Pattern: Code Review Follow-up** - Address PR feedback
-- [ ] Each pattern includes:
+- [x] Each pattern includes:
   - When to use it
   - Example commands
   - Tips for success
   - Common pitfalls
-- [ ] Add troubleshooting section
-- [ ] Include "When NOT to use Ralph" guidance
+- [x] Add troubleshooting section
+- [x] Include "When NOT to use Ralph" guidance
 
 **Labels**: `phase-4`, `documentation`, `priority-medium`
 
@@ -701,7 +701,7 @@ Document common use cases and best practices in a cookbook format.
 Allow users to extend Ralph with custom MCP (Model Context Protocol) tools.
 
 **Acceptance Criteria**:
-- [ ] Add configuration for custom MCP servers:
+- [x] Add configuration for custom MCP servers:
   ```json
   {
     "mcpServers": [
@@ -713,10 +713,10 @@ Allow users to extend Ralph with custom MCP (Model Context Protocol) tools.
     ]
   }
   ```
-- [ ] Implement MCP client for connecting to servers
-- [ ] Pass available tools to Copilot agent context
-- [ ] Document how to add custom MCP servers
-- [ ] Add `ralph config mcp add <name> <command>` helper
+- [x] Implement MCP client for connecting to servers
+- [x] Pass available tools to Copilot agent context
+- [x] Document how to add custom MCP servers
+- [x] Add `ralph config mcp add <name> <command>` helper
 
 **Technical Notes**:
 - Follow MCP specification for tool discovery
@@ -735,17 +735,17 @@ Allow users to extend Ralph with custom MCP (Model Context Protocol) tools.
 Provide comprehensive visibility into current and past Ralph sessions.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph status` showing:
+- [x] Implement `ralph status` showing:
   - Current session status (active/paused/complete)
   - Task being worked on
   - Iteration progress (n/max)
   - Token usage and remaining budget
   - Files modified in session
   - Time elapsed
-- [ ] Add `ralph status --history` for past sessions
-- [ ] Add `ralph status --json` for scripting
-- [ ] Show helpful next steps based on status
-- [ ] Color-coded output for quick scanning
+- [x] Add `ralph status --history` for past sessions
+- [x] Add `ralph status --json` for scripting
+- [x] Show helpful next steps based on status
+- [x] Color-coded output for quick scanning
 
 **Example Output**:
 ```
@@ -857,15 +857,15 @@ All ──→ #18 Cookbook
 
 ## 🛠️ Technical Decisions Summary
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Language** | TypeScript | Best Copilot SDK support, AI agents excel at it, npm distribution |
-| **CLI Framework** | Commander.js | Mature, well-documented, TypeScript support |
-| **Package Manager** | npm | Cross-platform, matches GitHub Copilot CLI |
-| **Node Version** | 18+ LTS | Modern features, long-term support |
-| **Config Format** | JSON | Simple, widely supported, good tooling |
-| **Progress Format** | Markdown | Human-friendly, AI-friendly, version-controllable |
-| **Git Integration** | Simple-git | Reliable Node.js git wrapper |
+| Decision            | Choice       | Rationale                                                         |
+| ------------------- | ------------ | ----------------------------------------------------------------- |
+| **Language**        | TypeScript   | Best Copilot SDK support, AI agents excel at it, npm distribution |
+| **CLI Framework**   | Commander.js | Mature, well-documented, TypeScript support                       |
+| **Package Manager** | npm          | Cross-platform, matches GitHub Copilot CLI                        |
+| **Node Version**    | 18+ LTS      | Modern features, long-term support                                |
+| **Config Format**   | JSON         | Simple, widely supported, good tooling                            |
+| **Progress Format** | Markdown     | Human-friendly, AI-friendly, version-controllable                 |
+| **Git Integration** | Simple-git   | Reliable Node.js git wrapper                                      |
 
 ---
 

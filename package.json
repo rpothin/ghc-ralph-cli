@@ -1,0 +1,77 @@
+{
+  "name": "ghcralph-cli",
+  "version": "0.1.0",
+  "description": "GitHub Copilot Ralph - A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "ghcralph": "./bin/ghcralph.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rpothin/ghc-ralph-cli.git"
+  },
+  "keywords": [
+    "cli",
+    "copilot",
+    "agentic-coding",
+    "ralph-wiggum",
+    "automation",
+    "developer-tools",
+    "ai-coding",
+    "github-copilot",
+    "nodejs",
+    "cross-platform"
+  ],
+  "author": "Raphael Pothin <raphael.pothin@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/rpothin/ghc-ralph-cli/issues"
+  },
+  "homepage": "https://github.com/rpothin/ghc-ralph-cli#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^25.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.1.0",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^0.1.17",
+    "@octokit/rest": "^22.0.1",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "glob": "^13.0.0",
+    "ora": "^9.1.0",
+    "picocolors": "^1.1.1"
+  }
+}
