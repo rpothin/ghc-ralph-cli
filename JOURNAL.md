@@ -160,3 +160,19 @@
 - Task IDs formatted as github-{issue_number}
 - Default in-progress label is "in-progress" (configurable)
 - Comments enabled by default (configurable via addComments)
+
+## 2026-01-24 - Issue #9: Progress Tracking with Markdown Artifacts
+
+### Completed
+- Created ProgressTracker class (src/core/progress-tracker.ts)
+- Generates .ralph/progress.md with session info and iteration log
+- Updates progress file after each iteration via event listener
+- Enhanced status command to display progress file contents
+- Added --json flag for machine-readable output
+- Supports lastCheckpoint field for git commit hashes
+
+### Technical Decisions
+- Progress saved to .ralph/progress.md in project root
+- SessionData type for JSON serialization
+- Status command reads and displays first 30 lines of progress
+- Iteration records include timestamps, tokens, success status

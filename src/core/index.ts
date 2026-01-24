@@ -38,3 +38,6 @@ export { LocalMarkdownPlan } from './local-markdown-plan.js';
 
 export { GitHubPlan } from './github-plan.js';
 export type { GitHubPlanConfig } from './github-plan.js';
+
+export { ProgressTracker } from './progress-tracker.js';
+export type { SessionData } from './progress-tracker.js';

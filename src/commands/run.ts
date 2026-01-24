@@ -8,7 +8,13 @@ import fs from 'node:fs/promises';
 import type { Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
-import { LoopEngine, LocalMarkdownPlan, GitHubPlan, type PlanManager } from '../core/index.js';
+import {
+  LoopEngine,
+  LocalMarkdownPlan,
+  GitHubPlan,
+  ProgressTracker,
+  type PlanManager,
+} from '../core/index.js';
 import type { Task } from '../types/index.js';
 
 export interface RunOptions {
@@ -225,6 +231,9 @@ export function registerRunCommand(program: Command): void {
         maxTokens,
       });
 
+      // Create progress tracker
+      const progressTracker = new ProgressTracker(undefined, maxIterations);
+
       // Setup signal handlers for graceful shutdown
       setupSignalHandlers(engine);
 
@@ -238,7 +247,7 @@ export function registerRunCommand(program: Command): void {
         );
       });
 
-      events.on('iterationEnd', (record, _state) => {
+      events.on('iterationEnd', (record, state) => {
         const status = record.success ? '✓' : '✗';
         info(
           `Iteration ${record.iteration}: ${status} (${record.tokensUsed.toLocaleString()} tokens)`
@@ -246,6 +255,10 @@ export function registerRunCommand(program: Command): void {
         if (record.summary) {
           console.log(`  ${dim(record.summary)}`);
         }
+        // Save progress after each iteration
+        progressTracker.save(state).catch(() => {
+          // Ignore save errors
+        });
       });
 
       events.on('error', (err) => {

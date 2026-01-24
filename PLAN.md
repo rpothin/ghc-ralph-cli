@@ -358,7 +358,7 @@ ralph run --label "ralph-ready" --max-iterations 10
 Create human-readable progress artifacts in Markdown format.
 
 **Acceptance Criteria**:
-- [ ] Create `.ralph/progress.md` file tracking:
+- [x] Create `.ralph/progress.md` file tracking:
   ```markdown
   # Ralph Progress Log
 
@@ -381,10 +381,10 @@ Create human-readable progress artifacts in Markdown format.
   - Files modified: src/schemas/registration.ts (new)
   - Tokens: 4,100
   ```
-- [ ] Update progress file after each iteration
-- [ ] Include git commit hashes for each checkpoint
-- [ ] Provide `ralph status` command to display current progress
-- [ ] Support `--json` flag for machine-readable output
+- [x] Update progress file after each iteration
+- [x] Include git commit hashes for each checkpoint
+- [x] Provide `ralph status` command to display current progress
+- [x] Support `--json` flag for machine-readable output
 
 **Labels**: `phase-2`, `progress-tracking`, `priority-medium`
 
