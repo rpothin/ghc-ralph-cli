@@ -439,3 +439,36 @@
 - Checkpoint tests verify actual git commit/rollback operations
 - File safeguard tests validate deletion protection for baseline files
 - Config manager tests verify file persistence and environment variable handling
+
+## 2026-01-24 - Integration Test Setup: Calculator Script
+
+### Purpose
+Created an integration test environment to validate the CLI end-to-end by having it implement a real bash script.
+
+### Files Created
+
+**test/integration/calculator/** directory:
+1. **PLAN.md** - Implementation plan with 4 phases:
+   - Phase 1: Addition operation
+   - Phase 2: Subtraction operation
+   - Phase 3: Multiplication operation
+   - Phase 4: Division operation (with error handling)
+
+2. **calculator.test.ts** - 16 Vitest tests to validate the output:
+   - Addition: 3 tests (positive, negative, zero)
+   - Subtraction: 3 tests (basic, negative result, zero)
+   - Multiplication: 3 tests (basic, zero, negative)
+   - Division: 3 tests (basic, integer division, division by zero)
+   - Error Handling: 4 tests (missing args, invalid op, non-numeric)
+
+3. **README.md** - Instructions for running the integration test
+
+### Expected Workflow
+1. Initialize ghcralph in the calculator directory
+2. Run the CLI to implement calculator.sh
+3. Run the tests to validate the implementation
+
+### Notes
+- calculator.sh does not exist yet - it will be created by the CLI
+- Tests are designed to fail clearly if the script doesn't exist
+- Uses bash arithmetic (integer-only operations)
