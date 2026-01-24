@@ -79,3 +79,24 @@
 - Iteration delay (500ms default) between iterations to prevent overwhelming
 - Event-driven architecture allows subscribers to monitor loop progress
 - Each iteration builds a prompt with task context and previous progress
+
+## 2026-01-24 - Issue #5: Basic `run` Command Implementation
+
+### Completed
+- Implemented `ralph run` command with all options:
+  - `--task/-t`: Inline task description
+  - `--file/-f`: Read task from file
+  - `--max-iterations/-n`: Limit iterations (default: 10)
+  - `--max-tokens`: Token budget (default: 100,000)
+  - `--model/-m`: Model selection (default: gpt-4)
+  - `--dry-run`: Preview without execution
+- Added real-time progress display via event listeners
+- Shows iteration count, token usage, and elapsed time
+- SIGINT/SIGTERM handlers for graceful Ctrl+C shutdown
+- Comprehensive final summary with status, iterations, tokens, time
+
+### Technical Decisions
+- Signal handlers allow double-Ctrl+C for force quit
+- Dry run mode displays task content for verification
+- Uses spinner during loop execution
+- Formats large numbers with locale-specific separators

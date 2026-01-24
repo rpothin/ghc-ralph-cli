@@ -218,17 +218,17 @@ Build the heart of Ralph CLI - the autonomous loop that repeatedly invokes the A
 Create the primary command that starts an agentic loop for a given task.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph run` command with options:
+- [x] Implement `ralph run` command with options:
   - `--task, -t <description>`: Task to execute (inline)
   - `--file, -f <path>`: Read task from file
   - `--max-iterations, -n <number>`: Maximum loop iterations (default: 10)
   - `--max-tokens <number>`: Maximum token budget
   - `--model, -m <model>`: Copilot model to use
   - `--dry-run`: Show what would happen without executing
-- [ ] Display real-time progress during execution
-- [ ] Show iteration count, token usage, and elapsed time
-- [ ] Handle Ctrl+C gracefully (save state, clean exit)
-- [ ] Output final summary on completion
+- [x] Display real-time progress during execution
+- [x] Show iteration count, token usage, and elapsed time
+- [x] Handle Ctrl+C gracefully (save state, clean exit)
+- [x] Output final summary on completion
 
 **Example Usage**:
 ```bash
