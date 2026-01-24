@@ -50,3 +50,6 @@ export type { GitBranchConfig, WorkingDirStatus, BranchInfo } from './git-branch
 
 export { CheckpointManager, createCheckpointManager } from './checkpoint-manager.js';
 export type { CheckpointConfig, Checkpoint } from './checkpoint-manager.js';
+
+export { FileSafeguardManager, createFileSafeguardManager } from './file-safeguard.js';
+export type { FileSafeguardConfig, BaselineSnapshot, FileOperations } from './file-safeguard.js';

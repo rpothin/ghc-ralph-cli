@@ -565,18 +565,18 @@ Prevent runaway loops and excessive resource consumption.
 Protect existing files from accidental deletion while allowing cleanup of agent-created files.
 
 **Acceptance Criteria**:
-- [ ] Track files that existed before session start (snapshot `.ralph/baseline-files.json`)
-- [ ] For files that existed before session:
+- [x] Track files that existed before session start (snapshot `.ralph/baseline-files.json`)
+- [x] For files that existed before session:
   - Block deletion attempts
   - Log warning and continue without deleting
   - Allow override with `--allow-delete` flag
-- [ ] For files created during session:
+- [x] For files created during session:
   - Allow deletion freely (agent experiments)
-- [ ] Provide `ralph status --files` to show:
+- [x] Provide `ralph status --files` to show:
   - Files modified
   - Files created
   - Deletion attempts blocked
-- [ ] Add configuration option `allowDeleteExisting: false` (default)
+- [x] Add configuration option `allowDeleteExisting: false` (default)
 
 **Labels**: `phase-3`, `safety`, `priority-high`
 

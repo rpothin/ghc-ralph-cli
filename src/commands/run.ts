@@ -15,6 +15,7 @@ import {
   ProgressTracker,
   GitBranchManager,
   CheckpointManager,
+  FileSafeguardManager,
   type PlanManager,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
@@ -33,6 +34,7 @@ export interface RunOptions {
   noCommit?: boolean;
   unlimited?: boolean;
   timeout?: string;
+  allowDelete?: boolean;
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -129,6 +131,7 @@ export function registerRunCommand(program: Command): void {
     .option('--no-commit', 'Disable automatic checkpoint commits')
     .option('--unlimited', 'Allow more than 50 iterations')
     .option('--timeout <minutes>', 'Maximum duration in minutes')
+    .option('--allow-delete', 'Allow deletion of pre-existing files')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
@@ -328,6 +331,12 @@ export function registerRunCommand(program: Command): void {
       const checkpointManager = new CheckpointManager({
         autoCommit: options.noCommit !== true,
       });
+
+      // Create file safeguard manager
+      const fileSafeguard = new FileSafeguardManager({
+        allowDeleteExisting: options.allowDelete === true,
+      });
+      await fileSafeguard.initialize();
 
       // Setup signal handlers for graceful shutdown
       setupSignalHandlers(engine);

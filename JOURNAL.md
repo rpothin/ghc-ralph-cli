@@ -267,3 +267,21 @@
 - Duration check uses Date.now() - startedAt
 - Warnings only emitted once per type per session
 - Circuit breaker triggers 'warning' event with 'circuit-breaker' type
+
+## 2026-01-24 - Issue #15: File Deletion Safeguards
+
+### Completed
+- Created FileSafeguardManager class (src/core/file-safeguard.ts)
+- Tracks baseline files via git ls-files at session start
+- Saves baseline to .ralph/baseline-files.json
+- Blocks deletion of pre-existing files (with warning)
+- Added --allow-delete flag to override protection
+- Enhanced status command with --files flag
+- Shows created and modified files since baseline
+
+### Technical Decisions
+- Baseline snapshot stored in .ralph/baseline-files.json
+- Uses git ls-files for tracked files only
+- canDelete() method for checking before deletion
+- Cleanup removes baseline file at session end
+- Status --files compares git status against baseline
