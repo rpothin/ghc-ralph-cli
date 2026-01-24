@@ -18,7 +18,7 @@ The script should accept two numbers and an operation as arguments.
 - [x] Return result to stdout
 
 ### Phase 2: Subtraction
-- [ ] Implement subtraction operation (-)
+- [x] Implement subtraction operation (-)
 - [ ] Ensure correct operand order (number1 - number2)
 
 ### Phase 3: Multiplication
