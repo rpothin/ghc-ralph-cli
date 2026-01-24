@@ -647,7 +647,7 @@ SEE ALSO
 Write the main README.md with clear onboarding for developers new to agentic AI coding.
 
 **Acceptance Criteria**:
-- [ ] README sections:
+- [x] README sections:
   - What is Ralph CLI? (and what is the Ralph Wiggum pattern)
   - Key Features
   - Quick Start (5-minute guide)
@@ -657,10 +657,10 @@ Write the main README.md with clear onboarding for developers new to agentic AI 
   - Safety Features
   - FAQ
   - Contributing
-- [ ] Include animated GIF/terminal recording showing basic usage
-- [ ] Add badges (npm version, license, build status)
-- [ ] Link to detailed documentation
-- [ ] Explain the philosophy (simple, safe, cross-platform)
+- [x] Include animated GIF/terminal recording showing basic usage
+- [x] Add badges (npm version, license, build status)
+- [x] Link to detailed documentation
+- [x] Explain the philosophy (simple, safe, cross-platform)
 
 **Labels**: `phase-4`, `documentation`, `priority-high`
 

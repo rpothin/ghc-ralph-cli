@@ -300,3 +300,21 @@
 - Help command looks up commands by name
 - Kept examples concise (5-6 per command)
 - "See also" section cross-references related commands
+
+## 2026-01-24 - Issue #17: README and Getting Started Guide
+
+### Completed
+- Rewrote README.md with comprehensive documentation
+- Added npm, license, and node.js badges
+- Explained the Ralph Wiggum pattern philosophy
+- Added 5-minute Quick Start guide
+- Documented all configuration options in table format
+- Added Safety Features section with details
+- Added Troubleshooting section with common issues
+- Added Philosophy section explaining design principles
+
+### Technical Decisions
+- Used emoji icons for visual feature scanning
+- Configuration table for quick reference
+- Code blocks for all examples
+- Linked to CONTRIBUTING.md for contributors
