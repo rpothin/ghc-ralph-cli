@@ -40,3 +40,23 @@
 - Verbosity levels: quiet (minimal), normal (default), verbose (debug info)
 - Shell detection via SHELL env var on Unix, PSModulePath/ComSpec on Windows
 - Config directory follows XDG spec on Unix, APPDATA on Windows
+
+## 2026-01-24 - Issue #3: GitHub Copilot SDK Integration
+
+### Completed
+- Installed @octokit/rest for GitHub API access
+- Implemented GitHub authentication (src/integrations/auth.ts)
+  - Priority: 1. GitHub CLI (`gh auth token`), 2. Environment variable (GITHUB_TOKEN/GH_TOKEN)
+- Created CopilotAgent class (src/integrations/copilot-agent.ts) with:
+  - `initialize()`: Set up agent session with authentication
+  - `execute(prompt)`: Send prompt and get response with retry logic
+  - `getTokenUsage()`: Return token consumption metrics
+  - Model selection support
+- Implemented TokenTracker class for token usage tracking
+- Added exponential backoff retry logic for API errors
+
+### Technical Decisions
+- Token estimation uses ~4 characters per token heuristic
+- CopilotError class distinguishes retryable vs non-retryable errors
+- Default config: gpt-4 model, 4096 max tokens, 3 retries
+- Agent has placeholder API call - actual implementation depends on Copilot API availability

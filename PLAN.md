@@ -156,15 +156,15 @@ Create the main CLI entry point that routes to subcommands and handles global op
 Implement the integration layer with the GitHub Copilot SDK to power the agentic loop.
 
 **Acceptance Criteria**:
-- [ ] Install and configure `@anthropic-ai/sdk` or appropriate Copilot SDK package
-- [ ] Implement authentication flow (leverage existing GitHub CLI auth if available)
-- [ ] Create `CopilotAgent` class with methods:
+- [x] Install and configure `@anthropic-ai/sdk` or appropriate Copilot SDK package
+- [x] Implement authentication flow (leverage existing GitHub CLI auth if available)
+- [x] Create `CopilotAgent` class with methods:
   - `initialize()`: Set up agent session
   - `execute(prompt: string)`: Send prompt and get response
   - `getTokenUsage()`: Return token consumption metrics
-- [ ] Handle API errors gracefully with retries
-- [ ] Implement token counting and usage tracking
-- [ ] Support model selection via configuration
+- [x] Handle API errors gracefully with retries
+- [x] Implement token counting and usage tracking
+- [x] Support model selection via configuration
 
 **Technical Notes**:
 - Check for GitHub Copilot CLI authentication first
