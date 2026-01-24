@@ -563,3 +563,76 @@ Need to implement actual Copilot API integration in `src/integrations/copilot-ag
 - Send prompts to the API
 - Parse and execute responses
 - Create/modify files based on AI output
+
+## 2026-01-24 - Integration Test Run #3 (Copilot SDK Integration)
+
+### What Changed
+
+**Implemented real Copilot SDK integration:**
+1. Installed `@github/copilot-sdk` package (v0.1.17)
+2. Rewrote `src/integrations/copilot-agent.ts` to use CopilotClient and CopilotSession
+3. Updated `src/integrations/auth.ts` to check COPILOT_CLI_USAGE_TOKEN environment variable
+
+### Test Execution
+
+**Steps executed:**
+1. ✅ Navigate to test directory
+2. ✅ Initialize ghcralph with token: `GITHUB_TOKEN=$COPILOT_CLI_USAGE_TOKEN`
+3. ✅ Run ghcralph: Multiple runs with increasing iterations
+4. ⚠️ Partial success - CLI generated code but didn't complete all tasks
+
+### Results
+
+**CLI Run**: Partial Success
+- CLI successfully connects to GitHub Copilot API (verified via logs)
+- Real responses received from Copilot (no more placeholder messages)
+- `calculator.sh` was created with:
+  - ✅ Basic structure and input validation
+  - ✅ Addition operation (+)
+  - ✅ Subtraction operation (-)
+  - ❌ Multiplication operation (not implemented)
+  - ❌ Division operation (not implemented)
+
+### Issues Encountered
+
+1. **Process hangs after completion**: The CLI completes but doesn't exit cleanly. The `client.stop()` call seems to hang. Required manual termination with timeout.
+
+2. **Task verification loop**: The agent kept verifying the same task multiple times without moving to the next task. Used 10 iterations for subtraction alone (only 1 iteration did actual work, 9 iterations just verified).
+
+3. **No file modifications being made**: The agent reports success but doesn't seem to create/modify files through the session. The only file created was during the first runs; subsequent runs only verified existing functionality.
+
+4. **Token consumption**: High token usage relative to work done (~13,525 tokens for essentially no new code).
+
+### Root Cause Analysis
+
+The current Copilot SDK integration has limitations:
+- It provides conversation responses but doesn't execute file operations
+- The agent describes what it would do but doesn't actually do it
+- There's no mechanism to parse and execute the AI's file change suggestions
+
+### Architecture Gap Identified
+
+The CLI architecture needs:
+1. **Response parsing**: Parse AI responses to extract file operations (create, edit, delete)
+2. **File execution**: Actually apply the parsed operations to the filesystem
+3. **Feedback loop**: Show the AI the results of its changes for verification
+4. **Task progression**: Better logic to detect task completion and move to next task
+
+This is a fundamental gap between "chat with AI" and "AI that edits files".
+
+### Cleanup Performed
+- Stopped hanging processes
+- Kept calculator.sh with partial implementation (addition, subtraction work)
+- Removed .ghcralph/ configuration directories
+
+### Conclusion
+
+The Copilot SDK integration is now working (real API calls happen), but the CLI cannot act on AI suggestions. This reveals a core architectural issue: **the CLI currently only talks to the AI but doesn't parse/execute its file operation suggestions**.
+
+This is a significant gap that would require:
+- A response parser to extract code blocks and file paths
+- Logic to determine operation type (create vs edit)
+- Safe file manipulation with the existing safeguard system
+- Verification that changes were applied correctly
+
+The integration test has been valuable in identifying this architectural limitation.
