@@ -51,7 +51,7 @@ function tryGhCliAuth(): AuthResult {
  * Try to get authentication from environment variable
  */
 function tryEnvAuth(): AuthResult {
-  const token = process.env['GITHUB_TOKEN'] ?? process.env['GH_TOKEN'];
+  const token = process.env['GITHUB_TOKEN'] ?? process.env['GH_TOKEN'] ?? process.env['COPILOT_CLI_USAGE_TOKEN'];
 
   if (token) {
     debug('Authenticated via environment token');
