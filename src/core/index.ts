@@ -44,3 +44,6 @@ export type { SessionData } from './progress-tracker.js';
 
 export { ContextBuilder, createContextBuilder } from './context-builder.js';
 export type { ContextBuilderConfig, BuiltContext } from './context-builder.js';
+
+export { GitBranchManager, createGitBranchManager } from './git-branch-manager.js';
+export type { GitBranchConfig, WorkingDirStatus, BranchInfo } from './git-branch-manager.js';

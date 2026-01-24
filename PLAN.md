@@ -437,13 +437,13 @@ Build rich context for the AI agent including relevant code, history, and constr
 Ensure all Ralph operations happen in isolated git branches to protect the main codebase.
 
 **Acceptance Criteria**:
-- [ ] On `ralph run`:
+- [x] On `ralph run`:
   - If on `main`/`master`: Auto-create branch `ralph/{task-slug}-{timestamp}`
   - If on other branch: Prompt user for confirmation before proceeding
-- [ ] Branch naming options via `--branch <name>` flag
-- [ ] Verify working directory is clean before starting (or offer to stash)
-- [ ] Configure branch prefix via settings (default: `ralph/`)
-- [ ] Add `--force` flag to skip branch confirmation prompts
+- [x] Branch naming options via `--branch <name>` flag
+- [x] Verify working directory is clean before starting (or offer to stash)
+- [x] Configure branch prefix via settings (default: `ralph/`)
+- [x] Add `--force` flag to skip branch confirmation prompts
 
 **Example Flow**:
 ```

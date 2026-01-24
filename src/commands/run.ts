@@ -13,6 +13,7 @@ import {
   LocalMarkdownPlan,
   GitHubPlan,
   ProgressTracker,
+  GitBranchManager,
   type PlanManager,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
@@ -26,6 +27,8 @@ export interface RunOptions {
   milestone?: string;
   assignee?: string;
   context?: string[];
+  branch?: string;
+  force?: boolean;
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -117,6 +120,8 @@ export function registerRunCommand(program: Command): void {
     .option('--milestone <name>', 'Filter GitHub issues by milestone')
     .option('--assignee <user>', 'Filter GitHub issues by assignee')
     .option('-c, --context <glob...>', 'Include files matching glob patterns in context')
+    .option('-b, --branch <name>', 'Use or create a specific branch name')
+    .option('--force', 'Skip branch confirmation prompts')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
@@ -221,6 +226,57 @@ export function registerRunCommand(program: Command): void {
       }
 
       console.log('');
+
+      // Setup git branch isolation
+      const gitManager = new GitBranchManager();
+      const isGitRepo = await gitManager.isGitRepository();
+      let branchInfo: { branchName: string; created: boolean; originalBranch: string } | null = null;
+
+      if (isGitRepo) {
+        // Check working directory status
+        const workingDirStatus = await gitManager.getWorkingDirStatus();
+        
+        if (!workingDirStatus.isClean && !options.force) {
+          warn(`Working directory has ${workingDirStatus.modifiedFiles} modified files and ${workingDirStatus.untrackedFiles} untracked files`);
+          info('Use --force to proceed anyway, or commit/stash your changes first');
+          
+          // Offer to stash changes
+          if (!options.dryRun) {
+            const stashed = await gitManager.stashChanges();
+            if (stashed) {
+              info('Changes stashed automatically');
+            }
+          }
+        }
+
+        // Prepare branch for operation
+        const currentBranch = await gitManager.getCurrentBranch();
+        
+        if (currentBranch.isMain) {
+          // On main/master - auto-create a new Ralph branch
+          const branchOptions: { branch?: string; force?: boolean } = {};
+          if (options.branch) branchOptions.branch = options.branch;
+          if (options.force) branchOptions.force = options.force;
+          
+          branchInfo = await gitManager.prepareForOperation(task.title, task.id, branchOptions);
+          
+          if (branchInfo.created) {
+            success(`Created and switched to branch '${branchInfo.branchName}'`);
+          } else {
+            info(`Using existing branch '${branchInfo.branchName}'`);
+          }
+        } else if (!currentBranch.isRalphBranch && !options.force) {
+          // On a non-main, non-Ralph branch - warn but proceed
+          warn(`You're on branch '${currentBranch.name}' (not main/master)`);
+          info(`Use --force to skip this warning, or --branch to specify a branch`);
+          branchInfo = { branchName: currentBranch.name, created: false, originalBranch: currentBranch.name };
+        } else {
+          branchInfo = { branchName: currentBranch.name, created: false, originalBranch: currentBranch.name };
+          debug(`Using current branch: ${currentBranch.name}`);
+        }
+        
+        console.log(`  ${dim('Branch:')} ${code(branchInfo.branchName)}`);
+      }
 
       // Create agent and engine with context configuration
       const agent = new CopilotAgent({

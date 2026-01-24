@@ -196,3 +196,20 @@
 - Files larger than 50KB skipped in explicit context
 - Keyword extraction filters common stop words
 - Limits to 5 relevant files and 3 top keywords for efficiency
+
+## 2026-01-24 - Issue #11: Git Branch Isolation
+
+### Completed
+- Created GitBranchManager class (src/core/git-branch-manager.ts)
+- Auto-creates ralph/{task-slug}-{timestamp} branches from main/master
+- Added --branch flag for custom branch names
+- Added --force flag to skip confirmation prompts
+- Detects clean/dirty working directory status
+- Auto-stashes changes when dirty (with option to pop later)
+- Integrated branch management into run command
+
+### Technical Decisions
+- Branch prefix configurable (default: "ralph/")
+- Branch name format: {prefix}{slug/id}-{YYYYMMDD}
+- Uses git rev-parse to check if in git repository
+- Warns but proceeds on non-main, non-Ralph branches
