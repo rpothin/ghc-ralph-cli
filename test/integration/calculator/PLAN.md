@@ -14,7 +14,7 @@ The script should accept two numbers and an operation as arguments.
 ### Phase 1: Addition
 - [x] Create calculator.sh with basic structure
 - [x] Implement addition operation (+)
-- [ ] Handle basic input validation
+- [x] Handle basic input validation
 - [ ] Return result to stdout
 
 ### Phase 2: Subtraction
