@@ -91,10 +91,10 @@
 Set up the foundational project structure for Ralph CLI.
 
 **Acceptance Criteria**:
-- [ ] Initialize npm project with appropriate `package.json`
-- [ ] Configure TypeScript with strict mode
-- [ ] Set up ESLint and Prettier for code quality
-- [ ] Create directory structure:
+- [x] Initialize npm project with appropriate `package.json`
+- [x] Configure TypeScript with strict mode
+- [x] Set up ESLint and Prettier for code quality
+- [x] Create directory structure:
   ```
   src/
     commands/       # CLI command implementations
@@ -105,10 +105,10 @@ Set up the foundational project structure for Ralph CLI.
   docs/             # Documentation
   examples/         # Example configurations and patterns
   ```
-- [ ] Configure `tsconfig.json` for Node.js target
-- [ ] Set up build scripts for cross-platform distribution
-- [ ] Add `.gitignore`, `.editorconfig`, and other standard files
-- [ ] Create initial `README.md` with project vision
+- [x] Configure `tsconfig.json` for Node.js target
+- [x] Set up build scripts for cross-platform distribution
+- [x] Add `.gitignore`, `.editorconfig`, and other standard files
+- [x] Create initial `README.md` with project vision
 
 **Technical Notes**:
 - Use Node.js 18+ as minimum version (LTS)
