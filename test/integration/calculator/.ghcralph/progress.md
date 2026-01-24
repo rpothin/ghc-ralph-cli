@@ -5,10 +5,10 @@
 - **Started**: 2026-01-24T17:03:38.505Z
 - **Task**: Implement subtraction operation (-)
 - **Status**: 🔄 In Progress
-- **Iterations**: 3/10
-- **Tokens Used**: 4,100
-- **Elapsed**: 47s
-- **Last Checkpoint**: `8aee3d9e21609bf89fd461ef9359231f9aa0a7ee`
+- **Iterations**: 4/10
+- **Tokens Used**: 5,259
+- **Elapsed**: 51s
+- **Last Checkpoint**: `3fdf3e7f72da69595dc0a2a37d5f8b6f3e5713d2`
 
 ### Task Details
 
@@ -35,4 +35,10 @@ Implement subtraction operation (-)
 - **Tokens**: 1,109
 - **Summary**: The task is complete. The subtraction operation was implemented in iteration 1 and verified in itera...
 - **Duration**: 5s
+
+#### Iteration 4 (5:04:26 PM) ✓
+
+- **Tokens**: 1,159
+- **Summary**: Task complete. The subtraction operation is fully implemented in calculator.sh (line 32-34) with `ec...
+- **Duration**: 3s
 
