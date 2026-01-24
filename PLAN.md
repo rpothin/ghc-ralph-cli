@@ -674,20 +674,20 @@ Write the main README.md with clear onboarding for developers new to agentic AI 
 Document common use cases and best practices in a cookbook format.
 
 **Acceptance Criteria**:
-- [ ] Create `docs/cookbook.md` with patterns:
+- [x] Create `docs/cookbook.md` with patterns:
   - **Pattern: Bug Fix Loop** - Find and fix a reported bug
   - **Pattern: Feature Implementation** - Build a new feature step by step
   - **Pattern: Refactoring Session** - Improve code quality safely
   - **Pattern: Test Coverage** - Add tests to existing code
   - **Pattern: Documentation Sprint** - Generate/update docs
   - **Pattern: Code Review Follow-up** - Address PR feedback
-- [ ] Each pattern includes:
+- [x] Each pattern includes:
   - When to use it
   - Example commands
   - Tips for success
   - Common pitfalls
-- [ ] Add troubleshooting section
-- [ ] Include "When NOT to use Ralph" guidance
+- [x] Add troubleshooting section
+- [x] Include "When NOT to use Ralph" guidance
 
 **Labels**: `phase-4`, `documentation`, `priority-medium`
 

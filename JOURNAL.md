@@ -318,3 +318,24 @@
 - Configuration table for quick reference
 - Code blocks for all examples
 - Linked to CONTRIBUTING.md for contributors
+
+## 2026-01-24 - Issue #18: Cookbook and Patterns Documentation
+
+### Completed
+- Created docs/cookbook.md with 6 usage patterns
+- Bug Fix Loop pattern with tips and pitfalls
+- Feature Implementation pattern with plan file example
+- Refactoring Session pattern emphasizing tests
+- Test Coverage pattern with coverage goals
+- Documentation Sprint pattern for doc generation
+- Code Review Follow-up pattern with PR feedback plan
+- Added comprehensive Troubleshooting section
+- Added "When NOT to Use Ralph" guidance
+- Added Best Practices Summary
+
+### Technical Decisions
+- Table of contents for quick navigation
+- Each pattern has consistent structure
+- Example commands use realistic scenarios
+- Pitfalls highlight real-world mistakes
+- ✅ ⚠️ ❌ emoji for quick scanning in "When NOT to use"
