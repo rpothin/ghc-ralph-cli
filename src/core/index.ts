@@ -80,3 +80,11 @@ export type {
   VerificationHookType,
   VerificationConfig,
 } from './verification-hooks.js';
+
+export { FeedbackBuilder, createFeedbackBuilder } from './feedback-builder.js';
+export type {
+  FeedbackSectionType,
+  FeedbackSection,
+  IterationFeedback,
+  FeedbackBuilderConfig,
+} from './feedback-builder.js';

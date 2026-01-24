@@ -116,14 +116,14 @@ This explicit format compensates for weaker instruction-following.
 
 ## Summary of Required Adjustments
 
-| Priority       | Issue                      | Fix                                                                      |
-| -------------- | -------------------------- | ------------------------------------------------------------------------ |
-| **🔴 Critical** | No file operations         | Implement Response Parser + Action Executor, or use agentic Copilot mode |
-| **🔴 Critical** | No objective exit criteria | Add stop hook that runs tests/build before allowing loop exit            |
-| **🔴 Critical** | No feedback loop           | Feed test output and git diff to next iteration                          |
-| **🟡 High**     | Context accumulation       | Reset or minimize context between iterations; rely on filesystem state   |
-| **🟡 High**     | Complex prompt template    | Simplify; remove meta-info like iteration/token counts                   |
-| **🟢 Medium**   | Model compensation         | Use explicit structured output format for weaker models                  |
+| Priority       | Issue                      | Fix                                                                      | Status |
+| -------------- | -------------------------- | ------------------------------------------------------------------------ | ------ |
+| **🔴 Critical** | No file operations         | Implement Response Parser + Action Executor, or use agentic Copilot mode | ✅ FIXED |
+| **🔴 Critical** | No objective exit criteria | Add stop hook that runs tests/build before allowing loop exit            | ✅ FIXED |
+| **🔴 Critical** | No feedback loop           | Feed test output and git diff to next iteration                          | ✅ FIXED |
+| **🟡 High**     | Context accumulation       | Reset or minimize context between iterations; rely on filesystem state   | ⏳ Pending |
+| **🟡 High**     | Complex prompt template    | Simplify; remove meta-info like iteration/token counts                   | ⏳ Pending |
+| **🟢 Medium**   | Model compensation         | Use explicit structured output format for weaker models                  | ⏳ Pending |
 
 ---
 

@@ -714,3 +714,51 @@ After reviewing the original Ralph Wiggum loop methodology (ghuntley.com/ralph a
 - Issue #4: Context accumulation (should reset per iteration)
 - Issue #5: Complex prompt template (remove meta-info)
 - Issue #6: Model compensation (explicit structured format)
+
+### Issue #3: No Feedback Loop - FIXED
+
+**Problem**: The AI couldn't see the results of its actions. When it said "create file X", there was no feedback showing whether that worked, what test output was, or what the current git diff looked like.
+
+**Solution**: Implemented Feedback Builder (`src/core/feedback-builder.ts`)
+
+#### FeedbackBuilder
+- Builds structured feedback from action execution results
+- Includes verification hook output (test results, build output)
+- Optionally includes git diff to show current changes
+- Formats everything for inclusion in the next iteration prompt
+
+**Feedback Sections:**
+| Section Type | Source | Purpose |
+|--------------|--------|---------|
+| `actions` | ActionExecutor results | Show which file operations succeeded/failed |
+| `verification` | VerificationManager results | Show test/build output |
+| `git-diff` | Git repository | Show current uncommitted changes |
+| `error` | Any caught errors | Surface runtime problems |
+| `suggestion` | Loop engine | Provide hints for next steps |
+
+**Features:**
+- Success/failure indicators (✓/✗) for quick scanning
+- Truncated output to avoid context bloat (configurable max lines)
+- "Next Steps" guidance when failures occur
+- Task completion detection (actions + verification all pass)
+
+**Example Formatted Feedback:**
+```markdown
+## Feedback from Previous Iteration
+
+### Action Results
+✓ Created file: calculator.sh
+✓ Executed: chmod +x calculator.sh
+
+### Verification Results
+✗ Tests failed (2100ms)
+Expected: 5
+Received: 0
+
+### Next Steps
+Review the failures above and continue working on the task.
+```
+
+**Tests Added**: 19 new tests for feedback builder
+
+**Total Tests**: 243 passing

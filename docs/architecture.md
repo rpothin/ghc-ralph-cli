@@ -455,10 +455,10 @@ graph LR
 |-------|--------|------------|--------|
 | **No file operations** | AI describes changes but nothing happens | Response not parsed for file operations | ✅ FIXED |
 | **No objective exit criteria** | AI declares done but tests may fail | No external verification | ✅ FIXED |
+| **No feedback loop** | AI can't verify its changes worked | No mechanism to show execution results | ✅ FIXED |
 | **No structured output** | AI returns free-form text | Prompt doesn't specify output format | 🔄 In Progress |
 | **Task verification loop** | AI keeps verifying same task | No clear completion signal expected | 🔄 In Progress |
 | **Model sensitivity** | Weaker models perform poorly | Prompt relies on implicit understanding | 🔄 In Progress |
-| **No feedback loop** | AI can't verify its changes worked | No mechanism to show execution results | ⏳ Pending |
 
 ### Current vs Expected Flow
 
@@ -594,6 +594,68 @@ graph LR
 | `package.json` with `scripts.lint` | `npm run lint` (optional) |
 | `Makefile` with `test:` target | `make test` (required) |
 | `pytest.ini` or `pyproject.toml` | `pytest` (required) |
+
+### 2.3 Feedback Builder ✅ IMPLEMENTED
+
+The feedback builder component has been implemented in `src/core/feedback-builder.ts`:
+
+**Purpose**: Build structured feedback from action execution and verification results to show the AI what actually happened, enabling it to iterate effectively.
+
+```mermaid
+graph TB
+    subgraph "Input Sources"
+        AE[Action Executor Results]
+        VH[Verification Hook Results]
+        GD[Git Diff]
+    end
+    
+    subgraph "Feedback Builder"
+        FB[FeedbackBuilder]
+        FB --> Actions[buildFromActions]
+        FB --> Verify[buildFromVerification]
+        FB --> Diff[buildFromGitDiff]
+        FB --> Format[formatForPrompt]
+    end
+    
+    subgraph "Output"
+        FP[Formatted Prompt Section]
+        FP --> Next[Next Iteration Prompt]
+    end
+    
+    AE --> Actions
+    VH --> Verify
+    GD --> Diff
+    Actions --> Format
+    Verify --> Format
+    Diff --> Format
+    Format --> FP
+```
+
+**Features:**
+- Combines action results, verification output, and git diff
+- Formats with success/failure indicators (✓/✗)
+- Truncates long output to avoid context bloat
+- Includes "Next Steps" guidance when failures occur
+- Detects task completion (all actions + verification passed)
+
+**Example Output:**
+```markdown
+## Feedback from Previous Iteration
+
+### Action Results
+✓ Created file: calculator.sh
+✓ Made file executable
+
+### Verification Results
+✗ Tests failed (1500ms)
+```
+Expected output: 5
+Received output: 0
+```
+
+### Next Steps
+Review the failures above and continue working on the task.
+```
 
 ### 3. Enhanced Prompt Template
 
