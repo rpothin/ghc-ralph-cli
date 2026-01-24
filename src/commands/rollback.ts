@@ -98,6 +98,23 @@ export function registerRollbackCommand(program: Command): void {
     .option('--all', 'Undo entire Ralph session')
     .option('--list', 'List available checkpoints')
     .option('--force', 'Skip confirmation prompt')
+    .addHelpText('after', `
+Examples:
+  $ ralph rollback                    # Undo last iteration
+  $ ralph rollback --iterations 3     # Undo last 3 iterations
+  $ ralph rollback --to abc1234       # Rollback to specific commit
+  $ ralph rollback --all --force      # Reset to pre-session state
+  $ ralph rollback --list             # Show available checkpoints
+
+Safety:
+  - All rollback operations require --force flag
+  - Preview shows files that will be affected
+  - Original state can be recovered from git reflog
+
+See also:
+  ralph status    View current progress
+  ralph run       Start a new coding loop
+`)
     .action(async (options: RollbackOptions) => {
       // List checkpoints
       if (options.list) {

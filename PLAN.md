@@ -594,16 +594,16 @@ Protect existing files from accidental deletion while allowing cleanup of agent-
 Create helpful, concise in-CLI documentation.
 
 **Acceptance Criteria**:
-- [ ] Every command has detailed `--help` output
-- [ ] Help includes:
+- [x] Every command has detailed `--help` output
+- [x] Help includes:
   - Command description
   - All available options with descriptions
   - Common usage examples
   - Related commands
-- [ ] Main `ralph --help` shows command overview
-- [ ] Add `ralph help <command>` as alias
-- [ ] Include tips for new users
-- [ ] Keep help text concise but informative
+- [x] Main `ralph --help` shows command overview
+- [x] Add `ralph help <command>` as alias
+- [x] Include tips for new users
+- [x] Keep help text concise but informative
 
 **Example**:
 ```

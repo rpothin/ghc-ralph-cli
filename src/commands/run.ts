@@ -136,6 +136,20 @@ export function registerRunCommand(program: Command): void {
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
     .option('--dry-run', 'Show what would happen without executing')
+    .addHelpText('after', `
+Examples:
+  $ ralph run --task "Add input validation to the login form"
+  $ ralph run --file tasks/refactor.md --max-iterations 5
+  $ ralph run --plan TODO.md
+  $ ralph run --github owner/repo --label "ralph-ready"
+  $ ralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
+  $ ralph run --task "Large refactor" --unlimited --timeout 60
+
+See also:
+  ralph status     View current session progress
+  ralph rollback   Undo recent changes
+  ralph init       Initialize Ralph in your project
+`)
     .action(async (options: RunOptions) => {
       if (!options.task && !options.file && !options.plan && !options.github) {
         error('Please provide a task with --task, --file, --plan, or --github');

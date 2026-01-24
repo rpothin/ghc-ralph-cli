@@ -285,3 +285,18 @@
 - canDelete() method for checking before deletion
 - Cleanup removes baseline file at session end
 - Status --files compares git status against baseline
+
+## 2026-01-24 - Issue #16: Comprehensive CLI Help System
+
+### Completed
+- Enhanced main --help with examples, quick start, tips
+- Added examples and "See also" sections to run, init, rollback commands
+- Implemented 'ralph help <command>' as alias
+- Added tips for new users in main help
+- All commands now have detailed help with usage patterns
+
+### Technical Decisions
+- Used commander's addHelpText('after') for examples
+- Help command looks up commands by name
+- Kept examples concise (5-6 per command)
+- "See also" section cross-references related commands

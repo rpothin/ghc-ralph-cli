@@ -53,6 +53,22 @@ export function registerInitCommand(program: Command): void {
     .option('--local', 'Use local Markdown files as plan source')
     .option('--github', 'Use GitHub Issues as plan source')
     .option('--plan-source <source>', 'Plan source (github or local)')
+    .addHelpText('after', `
+Examples:
+  $ ralph init                    # Interactive initialization
+  $ ralph init --local            # Use local Markdown plan files
+  $ ralph init --github           # Use GitHub Issues as plan source
+  $ ralph init --force            # Overwrite existing configuration
+
+This command will:
+  1. Create .ralph/ directory in your project
+  2. Generate config.json with default settings
+  3. Add .ralph/ to .gitignore (optional)
+
+See also:
+  ralph run     Execute a coding loop
+  ralph config  View or modify configuration
+`)
     .action(async (options: InitOptions) => {
       console.log('');
       console.log(heading('🤖 Ralph CLI - Initialize'));
