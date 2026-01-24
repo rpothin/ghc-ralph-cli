@@ -53,3 +53,18 @@ export type { CheckpointConfig, Checkpoint } from './checkpoint-manager.js';
 
 export { FileSafeguardManager, createFileSafeguardManager } from './file-safeguard.js';
 export type { FileSafeguardConfig, BaselineSnapshot, FileOperations } from './file-safeguard.js';
+
+export { parseResponse, hasCompleteAction, getCompleteAction, getActionsByType } from './response-parser.js';
+export type {
+  ActionType,
+  Action,
+  CreateAction,
+  EditAction,
+  DeleteAction,
+  ExecuteAction,
+  CompleteAction,
+  ParseResult,
+} from './response-parser.js';
+
+export { ActionExecutor, createActionExecutor } from './action-executor.js';
+export type { ActionResult, ExecutionResult, ActionExecutorConfig } from './action-executor.js';
