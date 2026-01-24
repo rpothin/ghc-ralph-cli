@@ -1,0 +1,8 @@
+{
+  "planSource": "local",
+  "maxIterations": 10,
+  "maxTokens": 100000,
+  "defaultModel": "gpt-4.1",
+  "autoCommit": true,
+  "branchPrefix": "ghcralph/"
+}
