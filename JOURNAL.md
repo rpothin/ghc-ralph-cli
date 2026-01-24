@@ -100,3 +100,29 @@
 - Dry run mode displays task content for verification
 - Uses spinner during loop execution
 - Formats large numbers with locale-specific separators
+
+## 2026-01-24 - Issue #6: Configuration System with `init` Command
+
+### Completed
+- Implemented `ralph init` command:
+  - Detects git repository
+  - Creates `.ralph/` directory
+  - Supports --local, --github, --plan-source options
+  - Saves configuration to `.ralph/config.json`
+- Created ConfigManager class (src/core/config-manager.ts):
+  - Loads config from: CLI flags > env vars > local > global > defaults
+  - Saves config to local or global files
+  - Validates config values
+- Implemented `ralph config` command:
+  - `get [key]`: Get config value(s)
+  - `set <key> <value>`: Set config value
+  - `list`: List all config
+  - `reset --force`: Reset to defaults
+  - `path`: Show config file paths
+- Added environment variable support (RALPH_* prefix)
+
+### Technical Decisions
+- Config priority: CLI > env > local > global > defaults
+- XDG Base Directory spec for Unix, APPDATA for Windows
+- Environment variables use SCREAMING_SNAKE_CASE with RALPH_ prefix
+- Type-safe config key validation

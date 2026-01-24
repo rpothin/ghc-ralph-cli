@@ -15,3 +15,16 @@ export type { LoopEvents } from './loop-events.js';
 
 export { createInitialState, createIterationRecord, completeIteration } from './loop-state.js';
 export type { IterationRecord, FullLoopState } from './loop-state.js';
+
+export {
+  ConfigManager,
+  isValidConfigKey,
+  validateConfigValue,
+  parseConfigValue,
+  getGlobalConfigPath,
+  getLocalConfigPath,
+  DEFAULT_CONFIG,
+} from './config-manager.js';
+export type { RalphConfiguration, ConfigKey } from './config-manager.js';
+
+export type { PlanSource } from './config-schema.js';

@@ -249,25 +249,25 @@ ralph run -t "Fix the failing tests in src/utils" --dry-run
 Create a configuration system that supports per-session setup and persisted preferences.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph init` command that:
+- [x] Implement `ralph init` command that:
   - Detects existing git repository
   - Prompts for plan source (GitHub Issues or local Markdown)
   - Configures GitHub authentication if using Issues
   - Sets default iteration limits
   - Creates `.ralph/` directory for local state
-- [ ] Support configuration sources (in priority order):
+- [x] Support configuration sources (in priority order):
   1. Command-line flags (highest priority)
   2. Environment variables (`RALPH_*`)
   3. Session configuration (`.ralph/config.json`)
   4. Global configuration (`~/.config/ralph/config.json`)
-- [ ] Configuration options:
+- [x] Configuration options:
   - `planSource`: `"github"` | `"local"`
   - `maxIterations`: number
   - `maxTokens`: number
   - `defaultModel`: string
   - `autoCommit`: boolean
   - `branchPrefix`: string (default: `"ralph/"`)
-- [ ] Implement `ralph config` command for viewing/editing config
+- [x] Implement `ralph config` command for viewing/editing config
 
 **Technical Notes**:
 - Use interactive prompts with `inquirer` or `prompts`
