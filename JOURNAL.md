@@ -397,3 +397,23 @@
 - `ghcralph` chosen to emphasize GitHub Copilot integration
 - `gpt-4.1` as default model due to 0x multiplier (cost-free tier)
 - GitHub Copilot CLI is a pre-requisite for the underlying SDK
+
+## 2026-01-24 - Test Suite Implementation (Part 1)
+
+### Completed
+- Set up Vitest test framework with coverage support
+- Added test scripts: `npm run test`, `npm run test:watch`, `npm run test:coverage`
+- Created comprehensive tests for core components:
+  1. **config-schema.test.ts** (11 tests) - DEFAULT_CONFIG, isValidConfigKey, validateConfigValue, parseConfigValue
+  2. **markdown-parser.test.ts** (14 tests) - parseMarkdownPlan, toTask, updateTaskCheckbox
+  3. **context-builder.test.ts** (10 tests) - buildContext, token estimation, file inclusion, custom templates
+  4. **loop-events.test.ts** (11 tests) - Event emitter for start, iterationStart/End, complete, error, warning, pause/resume
+  5. **progress-tracker.test.ts** (15 tests) - generateMarkdown, save, hasSession, clear, toJSON
+  6. **paths.test.ts** (16 tests) - normalizePath, joinPath, getHomeDir, getConfigDir, getLocalStateDir
+  7. **shell.test.ts** (13 tests) - detectShell, getShellConfigPath
+
+### Technical Decisions
+- Using Vitest for modern, fast ESM-compatible testing
+- Tests use temp directories for file system operations
+- Mock environment variables for platform-specific tests
+- 90 tests passing with good coverage

@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
-    "test": "echo \"Tests will be added in future issues\" && exit 0"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -52,13 +54,15 @@
     "@types/node": "^25.0.10",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.1.0",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.1"
+    "typescript-eslint": "^8.53.1",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
