@@ -32,3 +32,8 @@ export function getPlatform(): 'windows' | 'macos' | 'linux' {
       return 'linux';
   }
 }
+
+// Re-export utilities
+export * from './output.js';
+export * from './shell.js';
+export * from './paths.js';

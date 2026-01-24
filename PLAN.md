@@ -128,16 +128,16 @@ Set up the foundational project structure for Ralph CLI.
 Create the main CLI entry point that routes to subcommands and handles global options.
 
 **Acceptance Criteria**:
-- [ ] Create `bin/ralph` entry point
-- [ ] Implement command routing for: `init`, `run`, `status`, `rollback`, `config`
-- [ ] Add global flags:
+- [x] Create `bin/ralph` entry point
+- [x] Implement command routing for: `init`, `run`, `status`, `rollback`, `config`
+- [x] Add global flags:
   - `--version` / `-v`: Show version
   - `--help` / `-h`: Show help
   - `--verbose`: Enable verbose logging
   - `--quiet`: Suppress non-essential output
-- [ ] Implement colored, formatted console output
-- [ ] Add shell detection (Bash, PowerShell, Zsh, Fish, CMD)
-- [ ] Ensure cross-platform path handling
+- [x] Implement colored, formatted console output
+- [x] Add shell detection (Bash, PowerShell, Zsh, Fish, CMD)
+- [x] Ensure cross-platform path handling
 
 **Technical Notes**:
 - Use `chalk` or `picocolors` for terminal colors
