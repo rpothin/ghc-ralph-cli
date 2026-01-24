@@ -14,6 +14,7 @@ import {
   GitHubPlan,
   ProgressTracker,
   GitBranchManager,
+  CheckpointManager,
   type PlanManager,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
@@ -29,6 +30,7 @@ export interface RunOptions {
   context?: string[];
   branch?: string;
   force?: boolean;
+  noCommit?: boolean;
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -122,6 +124,7 @@ export function registerRunCommand(program: Command): void {
     .option('-c, --context <glob...>', 'Include files matching glob patterns in context')
     .option('-b, --branch <name>', 'Use or create a specific branch name')
     .option('--force', 'Skip branch confirmation prompts')
+    .option('--no-commit', 'Disable automatic checkpoint commits')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
@@ -308,6 +311,11 @@ export function registerRunCommand(program: Command): void {
       // Create progress tracker
       const progressTracker = new ProgressTracker(undefined, maxIterations);
 
+      // Create checkpoint manager for auto-commits
+      const checkpointManager = new CheckpointManager({
+        autoCommit: options.noCommit !== true,
+      });
+
       // Setup signal handlers for graceful shutdown
       setupSignalHandlers(engine);
 
@@ -329,6 +337,23 @@ export function registerRunCommand(program: Command): void {
         if (record.summary) {
           console.log(`  ${dim(record.summary)}`);
         }
+        
+        // Create checkpoint commit after successful iterations
+        if (record.success && checkpointManager.isAutoCommitEnabled()) {
+          checkpointManager
+            .createCheckpoint(record.iteration, record.summary ?? 'iteration complete', record.tokensUsed)
+            .then((checkpoint) => {
+              if (checkpoint) {
+                debug(`Checkpoint created: ${checkpoint.commitHash.substring(0, 7)}`);
+                // Update progress with commit hash
+                state.lastCheckpoint = checkpoint.commitHash;
+              }
+            })
+            .catch(() => {
+              // Ignore checkpoint errors
+            });
+        }
+        
         // Save progress after each iteration
         progressTracker.save(state).catch(() => {
           // Ignore save errors

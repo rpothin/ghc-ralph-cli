@@ -47,3 +47,6 @@ export type { ContextBuilderConfig, BuiltContext } from './context-builder.js';
 
 export { GitBranchManager, createGitBranchManager } from './git-branch-manager.js';
 export type { GitBranchConfig, WorkingDirStatus, BranchInfo } from './git-branch-manager.js';
+
+export { CheckpointManager, createCheckpointManager } from './checkpoint-manager.js';
+export type { CheckpointConfig, Checkpoint } from './checkpoint-manager.js';

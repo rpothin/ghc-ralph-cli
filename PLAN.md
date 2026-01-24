@@ -465,17 +465,17 @@ Starting loop...
 Create automatic checkpoints via git commits to enable easy rollback.
 
 **Acceptance Criteria**:
-- [ ] After each successful iteration:
+- [x] After each successful iteration:
   - Stage all modified files
   - Create commit with message: `ralph: iteration {n} - {summary}`
   - Record commit hash in progress log
-- [ ] Commit message includes:
+- [x] Commit message includes:
   - Iteration number
   - Brief summary of changes
   - Token usage for iteration
-- [ ] Skip commit if no files were modified
-- [ ] Add `--no-commit` flag to disable auto-commits
-- [ ] Ensure commits are atomic (all-or-nothing)
+- [x] Skip commit if no files were modified
+- [x] Add `--no-commit` flag to disable auto-commits
+- [x] Ensure commits are atomic (all-or-nothing)
 
 **Example Commits**:
 ```

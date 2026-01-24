@@ -213,3 +213,21 @@
 - Branch name format: {prefix}{slug/id}-{YYYYMMDD}
 - Uses git rev-parse to check if in git repository
 - Warns but proceeds on non-main, non-Ralph branches
+
+## 2026-01-24 - Issue #12: Automatic Checkpoint Commits
+
+### Completed
+- Created CheckpointManager class (src/core/checkpoint-manager.ts)
+- Auto-commits after each successful iteration
+- Commit message format: `ralph: iteration {n} - {summary}`
+- Full message includes token usage and file count
+- Added --no-commit flag to disable auto-commits
+- Tracks checkpoints with commit hashes for rollback
+- Skips commit if no files were modified
+- Integrated into run command event handler
+
+### Technical Decisions
+- Checkpoint tracking stored in memory (not persisted across sessions)
+- Supports soft rollback (keeps changes) and hard rollback (discards)
+- Can rollback by N iterations or to specific commit hash
+- Message prefix configurable (default: "ralph:")
