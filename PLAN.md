@@ -701,7 +701,7 @@ Document common use cases and best practices in a cookbook format.
 Allow users to extend Ralph with custom MCP (Model Context Protocol) tools.
 
 **Acceptance Criteria**:
-- [ ] Add configuration for custom MCP servers:
+- [x] Add configuration for custom MCP servers:
   ```json
   {
     "mcpServers": [
@@ -713,10 +713,10 @@ Allow users to extend Ralph with custom MCP (Model Context Protocol) tools.
     ]
   }
   ```
-- [ ] Implement MCP client for connecting to servers
-- [ ] Pass available tools to Copilot agent context
-- [ ] Document how to add custom MCP servers
-- [ ] Add `ralph config mcp add <name> <command>` helper
+- [x] Implement MCP client for connecting to servers
+- [x] Pass available tools to Copilot agent context
+- [x] Document how to add custom MCP servers
+- [x] Add `ralph config mcp add <name> <command>` helper
 
 **Technical Notes**:
 - Follow MCP specification for tool discovery

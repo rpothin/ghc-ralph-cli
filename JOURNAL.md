@@ -339,3 +339,20 @@
 - Example commands use realistic scenarios
 - Pitfalls highlight real-world mistakes
 - ✅ ⚠️ ❌ emoji for quick scanning in "When NOT to use"
+
+## 2026-01-24 - Issue #19: MCP Tool Extension Support
+
+### Completed
+- Created MCPToolManager class (src/integrations/mcp-tools.ts)
+- Supports stdio and http transports for MCP servers
+- Added MCPServerConfiguration to config schema
+- Created docs/mcp-tools.md with comprehensive documentation
+- Added example MCP server implementations (Node.js and Python)
+- Exported MCPToolManager from integrations/index.ts
+
+### Technical Decisions
+- stdio transport spawns child process, communicates via JSON lines
+- http transport uses REST API (GET /tools, POST /execute)
+- 30 second timeout for tool execution
+- Explicit typing with Buffer for stdout data handlers
+- Uses `delete` operator for optional property cleanup (exactOptionalPropertyTypes)

@@ -10,6 +10,22 @@
 export type PlanSource = 'github' | 'local';
 
 /**
+ * MCP Server configuration for custom tools
+ */
+export interface MCPServerConfiguration {
+  /** Name of the MCP server */
+  name: string;
+  /** Command to run the server */
+  command: string;
+  /** Arguments to pass to the command */
+  args?: string[];
+  /** Transport type (stdio or http) */
+  transport?: 'stdio' | 'http';
+  /** HTTP endpoint (for http transport) */
+  endpoint?: string;
+}
+
+/**
  * Ralph CLI configuration
  */
 export interface RalphConfiguration {
@@ -31,6 +47,8 @@ export interface RalphConfiguration {
   localPlanFile?: string;
   /** Custom prompt template */
   promptTemplate?: string;
+  /** MCP servers for custom tools */
+  mcpServers?: MCPServerConfiguration[];
 }
 
 /**
@@ -58,6 +76,7 @@ export const CONFIG_KEYS = [
   'githubRepo',
   'localPlanFile',
   'promptTemplate',
+  'mcpServers',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
