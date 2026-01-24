@@ -2,16 +2,18 @@
  * Copilot Agent
  *
  * Integration with GitHub Copilot for AI agent capabilities
+ * Uses the @github/copilot-sdk for actual Copilot API access
  */
 
-import { debug, error as logError, info } from '../utils/index.js';
+import { CopilotClient, type CopilotSession } from '@github/copilot-sdk';
+import { debug, error as logError, info, warn } from '../utils/index.js';
 import { getGitHubAuth, type AuthResult } from './auth.js';
 import { TokenTracker, estimateTokens, type TokenUsage } from './tokens.js';
 
 /**
  * Available Copilot models
  */
-export type CopilotModel = 'gpt-4' | 'gpt-4-turbo' | 'gpt-3.5-turbo' | 'claude-3-sonnet' | string;
+export type CopilotModel = 'gpt-4' | 'gpt-4.1' | 'gpt-4-turbo' | 'gpt-5' | 'claude-sonnet-4.5' | string;
 
 /**
  * Copilot agent configuration
@@ -25,16 +27,19 @@ export interface CopilotAgentConfig {
   maxRetries: number;
   /** Delay between retries in ms */
   retryDelayMs: number;
+  /** Working directory for file operations */
+  cwd: string;
 }
 
 /**
  * Default agent configuration
  */
 const DEFAULT_CONFIG: CopilotAgentConfig = {
-  model: 'gpt-4',
+  model: 'gpt-4.1',
   maxTokensPerRequest: 4096,
   maxRetries: 3,
   retryDelayMs: 1000,
+  cwd: process.cwd(),
 };
 
 /**
@@ -80,6 +85,8 @@ export class CopilotAgent {
   private tokenTracker: TokenTracker;
   private authResult: AuthResult | null = null;
   private initialized: boolean = false;
+  private client: CopilotClient | null = null;
+  private session: CopilotSession | null = null;
 
   constructor(config: Partial<CopilotAgentConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -100,9 +107,31 @@ export class CopilotAgent {
       return false;
     }
 
-    info(`Copilot agent initialized (model: ${this.config.model})`);
-    this.initialized = true;
-    return true;
+    try {
+      // Create Copilot client
+      this.client = new CopilotClient({
+        autoStart: true,
+        logLevel: 'error',
+      });
+
+      // Start the client
+      await this.client.start();
+      debug('Copilot client started');
+
+      // Create a session with the specified model
+      this.session = await this.client.createSession({
+        model: this.config.model,
+      });
+      debug(`Session created with model: ${this.config.model}`);
+
+      info(`Copilot agent initialized (model: ${this.config.model})`);
+      this.initialized = true;
+      return true;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logError(`Failed to initialize Copilot SDK: ${errorMsg}`);
+      return false;
+    }
   }
 
   /**
@@ -116,7 +145,7 @@ export class CopilotAgent {
    * Execute a prompt and get a response
    */
   async execute(prompt: string): Promise<ExecutionResult> {
-    if (!this.initialized) {
+    if (!this.initialized || !this.session) {
       throw new CopilotError('Agent not initialized', 'NOT_INITIALIZED');
     }
 
@@ -150,41 +179,79 @@ export class CopilotAgent {
   }
 
   /**
-   * Execute with retry logic
+   * Execute with retry logic using Copilot SDK
    */
   private async executeWithRetry(prompt: string): Promise<ExecutionResult> {
-    // Estimate token usage (actual would come from API response)
+    if (!this.session) {
+      throw new CopilotError('No active session', 'NO_SESSION');
+    }
+
     const promptTokens = estimateTokens(prompt);
+    let responseContent = '';
 
-    // TODO: Implement actual API call to Copilot
-    // For now, this is a placeholder that simulates the interface
-    // The actual implementation will depend on the available Copilot API
+    try {
+      // Create a promise that resolves when the session becomes idle
+      const done = new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new CopilotError('Session timeout', 'TIMEOUT', true));
+        }, 120000); // 2 minute timeout
 
-    // Simulate a response for testing the interface
-    const responseContent = `[Copilot Agent Response Placeholder]
+        this.session?.on((event) => {
+          if (event.type === 'assistant.message') {
+            responseContent += event.data.content ?? '';
+          } else if (event.type === 'session.idle') {
+            clearTimeout(timeout);
+            resolve();
+          } else if (event.type === 'session.error') {
+            clearTimeout(timeout);
+            reject(new CopilotError(event.data.message ?? 'Unknown error', 'SDK_ERROR', true));
+          }
+        });
+      });
 
-This is a placeholder response. The actual Copilot integration requires:
-1. Access to the GitHub Copilot API endpoint
-2. Proper authentication with Copilot-enabled token
-3. API call implementation
+      // Send the prompt
+      await this.session.send({ prompt });
 
-Prompt received (${promptTokens} estimated tokens):
-${prompt.substring(0, 200)}...`;
+      // Wait for completion
+      await done;
 
-    const completionTokens = estimateTokens(responseContent);
+      const completionTokens = estimateTokens(responseContent);
+      this.tokenTracker.addUsage(promptTokens, completionTokens);
 
-    // Track token usage
-    this.tokenTracker.addUsage(promptTokens, completionTokens);
+      return {
+        success: true,
+        content: responseContent,
+        tokenUsage: {
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+        },
+      };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      warn(`Copilot execution error: ${errorMsg}`);
+      throw err;
+    }
+  }
 
-    return {
-      success: true,
-      content: responseContent,
-      tokenUsage: {
-        promptTokens,
-        completionTokens,
-        totalTokens: promptTokens + completionTokens,
-      },
-    };
+  /**
+   * Cleanup resources
+   */
+  async destroy(): Promise<void> {
+    try {
+      if (this.session) {
+        await this.session.destroy();
+        this.session = null;
+      }
+      if (this.client) {
+        await this.client.stop();
+        this.client = null;
+      }
+      this.initialized = false;
+      debug('Copilot agent destroyed');
+    } catch (err) {
+      warn(`Error during cleanup: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /**

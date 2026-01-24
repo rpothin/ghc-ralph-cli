@@ -1,9 +1,11 @@
 {
-  "createdAt": "2026-01-24T16:36:52.963Z",
+  "createdAt": "2026-01-24T16:44:07.792Z",
   "files": [
+    ".ghcralph/baseline-files.json",
+    ".ghcralph/progress.md",
     "PLAN.md",
     "README.md",
     "calculator.test.ts"
   ],
-  "count": 3
+  "count": 5
 }

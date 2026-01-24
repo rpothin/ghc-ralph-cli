@@ -521,3 +521,45 @@ The CLI integration test **validates the CLI is functioning correctly** up to th
 - Restored stashed changes
 - Removed `.ghcralph/` directories
 - Working tree clean
+
+## 2026-01-24 - Integration Test Run #2
+
+### Test Execution
+
+**Steps executed:**
+1. ✅ Navigate to test directory
+2. ✅ Initialize ghcralph with token: `GITHUB_TOKEN=$COPILOT_CLI_USAGE_TOKEN`
+3. ✅ Run ghcralph: `node bin/ghcralph.js run --plan PLAN.md --force`
+4. ⚠️ CLI ran successfully but no calculator.sh created
+
+### Results
+
+**CLI Run**: "Success" - but no output file
+- 10 iterations completed
+- 11,833 tokens "used"
+- Status: completed
+- **BUT**: No calculator.sh file was created
+
+### Root Cause Analysis
+
+The `copilot-agent.ts` file (lines 159-172) contains a **placeholder implementation**:
+```typescript
+// TODO: Implement actual API call to Copilot
+// For now, this is a placeholder that simulates the interface
+const responseContent = `[Copilot Agent Response Placeholder]...`;
+```
+
+The agent doesn't actually:
+1. Call the GitHub Copilot API
+2. Execute any code generation
+3. Create/modify files
+
+**This is a development stub** - the actual Copilot SDK integration was not implemented.
+
+### Fix Required
+
+Need to implement actual Copilot API integration in `src/integrations/copilot-agent.ts`:
+- Use GitHub Copilot SDK or API
+- Send prompts to the API
+- Parse and execute responses
+- Create/modify files based on AI output
