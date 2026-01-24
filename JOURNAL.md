@@ -356,3 +356,21 @@
 - 30 second timeout for tool execution
 - Explicit typing with Buffer for stdout data handlers
 - Uses `delete` operator for optional property cleanup (exactOptionalPropertyTypes)
+
+## 2026-01-24 - Issue #20: Status Command and Session Management
+
+### Completed
+- Enhanced `ralph status` command with rich session information
+- Shows current session status, task, branch, iteration progress, tokens
+- Added progress bar visualization with color coding
+- Shows modified files with status indicators (+/~/-)
+- Added --history flag to show past Ralph sessions from git log
+- Added contextual tips based on session status
+- Color-coded output for quick scanning
+- Status icons for active/complete/failed/paused states
+
+### Technical Decisions
+- Parse progress.md to extract session metadata
+- Use git log --grep for finding Ralph commits
+- Group sessions in history by detecting iteration number gaps
+- Regex to strip emoji safely without eslint character class issues

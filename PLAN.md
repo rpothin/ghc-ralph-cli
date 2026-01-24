@@ -735,17 +735,17 @@ Allow users to extend Ralph with custom MCP (Model Context Protocol) tools.
 Provide comprehensive visibility into current and past Ralph sessions.
 
 **Acceptance Criteria**:
-- [ ] Implement `ralph status` showing:
+- [x] Implement `ralph status` showing:
   - Current session status (active/paused/complete)
   - Task being worked on
   - Iteration progress (n/max)
   - Token usage and remaining budget
   - Files modified in session
   - Time elapsed
-- [ ] Add `ralph status --history` for past sessions
-- [ ] Add `ralph status --json` for scripting
-- [ ] Show helpful next steps based on status
-- [ ] Color-coded output for quick scanning
+- [x] Add `ralph status --history` for past sessions
+- [x] Add `ralph status --json` for scripting
+- [x] Show helpful next steps based on status
+- [x] Color-coded output for quick scanning
 
 **Example Output**:
 ```
