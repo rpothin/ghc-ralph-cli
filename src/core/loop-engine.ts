@@ -15,6 +15,7 @@ import {
   completeIteration,
   type FullLoopState,
 } from './loop-state.js';
+import { ContextBuilder, type ContextBuilderConfig } from './context-builder.js';
 
 /**
  * Loop engine configuration
@@ -26,6 +27,8 @@ export interface LoopEngineConfig {
   maxTokens: number;
   /** Delay between iterations in ms */
   iterationDelayMs: number;
+  /** Context builder configuration */
+  contextConfig?: Partial<ContextBuilderConfig>;
 }
 
 /**
@@ -55,6 +58,7 @@ export class LoopEngine {
   private config: LoopEngineConfig;
   private agent: CopilotAgent;
   private events: LoopEventEmitter;
+  private contextBuilder: ContextBuilder;
   private state: FullLoopState | null = null;
   private pauseRequested: boolean = false;
   private stopRequested: boolean = false;
@@ -63,6 +67,7 @@ export class LoopEngine {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.agent = agent;
     this.events = new LoopEventEmitter();
+    this.contextBuilder = new ContextBuilder(config.contextConfig);
   }
 
   /**
@@ -250,11 +255,24 @@ export class LoopEngine {
     this.events.emit('iterationStart', this.state.iteration, this.state);
 
     try {
-      // Build context/prompt
-      const prompt = this.buildPrompt();
+      // Build context/prompt using the context builder
+      const builtContext = await this.contextBuilder.buildContext(
+        this.state.task,
+        this.state.iteration,
+        this.config.maxIterations,
+        this.state.tokensUsed,
+        this.config.maxTokens,
+        this.state.iterations
+      );
+
+      if (builtContext.truncated) {
+        warn('Context was truncated to fit within token limits');
+      }
+
+      debug(`Context includes ${builtContext.filesIncluded.length} files, ~${builtContext.estimatedTokens} tokens`);
 
       // Execute via agent
-      const result = await this.agent.execute(prompt);
+      const result = await this.agent.execute(builtContext.prompt);
 
       if (result.success && result.tokenUsage) {
         // Update token usage
@@ -293,34 +311,6 @@ export class LoopEngine {
       this.state.iterations.push(completedRecord);
       this.events.emit('iterationEnd', completedRecord, this.state);
     }
-  }
-
-  /**
-   * Build the prompt for the current iteration
-   */
-  private buildPrompt(): string {
-    if (!this.state) return '';
-
-    const { task, iteration, iterations } = this.state;
-
-    // Build context from previous iterations
-    const previousSummaries = iterations
-      .filter((i) => i.success && i.summary)
-      .map((i) => `- Iteration ${i.iteration}: ${i.summary}`)
-      .join('\n');
-
-    return `# Task: ${task.title}
-
-## Task Description
-${task.content}
-
-## Current State
-- Iteration: ${iteration} of ${this.config.maxIterations}
-- Tokens used: ${this.state.tokensUsed} of ${this.config.maxTokens}
-
-${previousSummaries ? `## Previous Progress\n${previousSummaries}\n` : ''}
-## Instructions
-Please continue working on the task. When the task is complete, indicate that in your response.`;
   }
 
   /**

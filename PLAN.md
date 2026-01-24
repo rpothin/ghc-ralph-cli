@@ -398,15 +398,15 @@ Create human-readable progress artifacts in Markdown format.
 Build rich context for the AI agent including relevant code, history, and constraints.
 
 **Acceptance Criteria**:
-- [ ] Gather context automatically:
+- [x] Gather context automatically:
   - Current task description
   - Relevant files (based on task keywords)
   - Recent git history
   - Previous iteration results
   - Project structure overview
-- [ ] Implement context size management (stay within token limits)
-- [ ] Support explicit context files via `--context <glob>` flag
-- [ ] Include the "Ralph prompt" pattern:
+- [x] Implement context size management (stay within token limits)
+- [x] Support explicit context files via `--context <glob>` flag
+- [x] Include the "Ralph prompt" pattern:
   ```
   You are an expert software engineer. Your task is: {task}
   
@@ -419,7 +419,7 @@ Build rich context for the AI agent including relevant code, history, and constr
   - Explain your reasoning
   - Stop when the task is complete
   ```
-- [ ] Allow custom prompt templates via configuration
+- [x] Allow custom prompt templates via configuration
 
 **Labels**: `phase-2`, `core`, `priority-medium`
 

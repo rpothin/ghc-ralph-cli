@@ -176,3 +176,23 @@
 - SessionData type for JSON serialization
 - Status command reads and displays first 30 lines of progress
 - Iteration records include timestamps, tokens, success status
+
+## 2026-01-24 - Issue #10: Task Context Building
+
+### Completed
+- Created ContextBuilder class (src/core/context-builder.ts)
+- Gathers task-relevant files using git grep for keyword matches
+- Includes git diff (staged/unstaged changes) in context
+- Includes recent git history (configurable limit, default 5 commits)
+- Includes project structure overview
+- Manages context size with token estimation (~4 chars per token)
+- Added --context <glob...> flag to run command for explicit files
+- Supports custom prompt templates via configuration (promptTemplate)
+- Implements default Ralph prompt pattern with placeholders
+
+### Technical Decisions
+- Installed `glob` package for file pattern matching
+- Context truncation keeps 70% start, 25% end when exceeding limits
+- Files larger than 50KB skipped in explicit context
+- Keyword extraction filters common stop words
+- Limits to 5 relevant files and 3 top keywords for efficiency

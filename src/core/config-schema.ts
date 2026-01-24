@@ -29,6 +29,8 @@ export interface RalphConfiguration {
   githubRepo?: string;
   /** Local plan file path for local plan source */
   localPlanFile?: string;
+  /** Custom prompt template */
+  promptTemplate?: string;
 }
 
 /**
@@ -55,6 +57,7 @@ export const CONFIG_KEYS = [
   'branchPrefix',
   'githubRepo',
   'localPlanFile',
+  'promptTemplate',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];

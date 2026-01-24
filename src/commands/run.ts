@@ -25,6 +25,7 @@ export interface RunOptions {
   label?: string;
   milestone?: string;
   assignee?: string;
+  context?: string[];
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -115,6 +116,7 @@ export function registerRunCommand(program: Command): void {
     .option('-l, --label <label>', 'Filter GitHub issues by label')
     .option('--milestone <name>', 'Filter GitHub issues by milestone')
     .option('--assignee <user>', 'Filter GitHub issues by assignee')
+    .option('-c, --context <glob...>', 'Include files matching glob patterns in context')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
@@ -220,15 +222,31 @@ export function registerRunCommand(program: Command): void {
 
       console.log('');
 
-      // Create agent and engine
+      // Create agent and engine with context configuration
       const agent = new CopilotAgent({
         model: options.model ?? 'gpt-4',
         maxTokensPerRequest: 4096,
       });
 
+      // Build context config, only including contextGlobs if provided
+      const contextConfig: {
+        contextGlobs?: string[];
+        includeGitDiff: boolean;
+        includeGitHistory: boolean;
+        includeProjectStructure: boolean;
+      } = {
+        includeGitDiff: true,
+        includeGitHistory: true,
+        includeProjectStructure: true,
+      };
+      if (options.context) {
+        contextConfig.contextGlobs = options.context;
+      }
+
       const engine = new LoopEngine(agent, {
         maxIterations,
         maxTokens,
+        contextConfig,
       });
 
       // Create progress tracker
