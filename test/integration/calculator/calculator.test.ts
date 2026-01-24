@@ -10,9 +10,12 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { access, chmod } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const execAsync = promisify(exec);
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const CALCULATOR_PATH = path.join(__dirname, 'calculator.sh');
 
 describe('Calculator Script', () => {
