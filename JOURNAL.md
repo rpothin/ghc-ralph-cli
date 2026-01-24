@@ -791,3 +791,57 @@ For backwards compatibility:
 **Tests Updated**: Added 2 new tests for fresh context behavior
 
 **Total Tests**: 245 passing
+
+### Issue #6: Model Compensation - FIXED
+
+**Problem**: The original Ralph pattern was designed for Claude's strong instruction-following. Weaker models (like gpt-4.1, the default due to 0x cost multiplier) need more explicit examples to follow the structured output format correctly.
+
+**Solution**: Created Prompt Examples module (`src/core/prompt-examples.ts`)
+
+#### Model Strength Classification
+| Model | Strength | Examples Included |
+|-------|----------|-------------------|
+| Claude (any) | Strong | Format instructions only |
+| GPT-4o, GPT-5 | Strong | Format instructions only |
+| GPT-4-turbo | Medium | Format + minimal examples |
+| Gemini | Medium | Format + minimal examples |
+| gpt-4.1 (default) | Weak | Format + detailed examples |
+| Unknown models | Weak | Format + detailed examples (safe default) |
+
+#### Features
+- `getModelStrength(model)`: Classifies models by instruction-following capability
+- `getPromptExamples(strength)`: Returns appropriate example content
+- `getExamplesForModel(model)`: Convenience function combining both
+- Concrete examples for CREATE, EDIT, EXECUTE, COMPLETE actions
+- Detailed vs minimal examples based on model needs
+
+#### Context Builder Integration
+The ContextBuilder now accepts a `model` config option and automatically includes appropriate examples:
+```typescript
+const builder = new ContextBuilder({
+  model: 'gpt-4.1', // Gets full examples
+});
+```
+
+**Tests Added**: 22 new tests for prompt examples
+
+**Total Tests**: 267 passing
+
+---
+
+## Realignment Summary
+
+All 6 issues from REALIGNMENT_PLAN.md have been addressed:
+
+| Issue | Component | Tests |
+|-------|-----------|-------|
+| #1: No file operations | ResponseParser + ActionExecutor | 37 |
+| #2: No exit criteria | VerificationManager | 20 |
+| #3: No feedback loop | FeedbackBuilder | 19 |
+| #4: Context accumulation | ContextBuilder (freshContextPerIteration) | 2 |
+| #5: Complex prompts | ContextBuilder (includeMetaInfo) | Included in #4 |
+| #6: Model sensitivity | PromptExamples | 22 |
+
+Total new components: 5
+Total new tests: 100+
+Total tests now: 267

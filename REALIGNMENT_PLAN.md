@@ -123,7 +123,19 @@ This explicit format compensates for weaker instruction-following.
 | **🔴 Critical** | No feedback loop           | Feed test output and git diff to next iteration                          | ✅ FIXED |
 | **🟡 High**     | Context accumulation       | Reset or minimize context between iterations; rely on filesystem state   | ✅ FIXED |
 | **🟡 High**     | Complex prompt template    | Simplify; remove meta-info like iteration/token counts                   | ✅ FIXED |
-| **🟢 Medium**   | Model compensation         | Use explicit structured output format for weaker models                  | ⏳ Pending |
+| **🟢 Medium**   | Model compensation         | Use explicit structured output format for weaker models                  | ✅ FIXED |
+
+---
+
+## ✅ Realignment Complete
+
+All 6 issues have been addressed. The CLI now follows the core Ralph pattern:
+1. **Actions are parsed and executed** (Response Parser + Action Executor)
+2. **Objective exit criteria** (Verification Hooks run tests/build)
+3. **Feedback loop** (Feedback Builder shows action/test results)
+4. **Fresh context** (Skip previous progress, rely on git diff)
+5. **Simple prompts** (No meta-info, just task + state + feedback)
+6. **Model compensation** (Detailed examples for weaker models)
 
 ---
 

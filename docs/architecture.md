@@ -458,7 +458,7 @@ graph LR
 | **No feedback loop** | AI can't verify its changes worked | No mechanism to show execution results | ✅ FIXED |
 | **Context accumulation** | Model drifts with long context | Conversation history accumulates | ✅ FIXED |
 | **Complex prompt template** | Meta-info confuses weaker models | Iteration/token counts in prompt | ✅ FIXED |
-| **Model sensitivity** | Weaker models perform poorly | Prompt relies on implicit understanding | 🔄 In Progress |
+| **Model sensitivity** | Weaker models perform poorly | Prompt relies on implicit understanding | ✅ FIXED |
 
 ### Current vs Expected Flow
 
@@ -696,6 +696,81 @@ Use structured ACTION blocks to make changes:
 - Test your changes with [ACTION:EXECUTE]
 - Use [ACTION:COMPLETE] when tests pass and task is done
 ```
+
+### 2.5 Model Compensation ✅ IMPLEMENTED
+
+The prompt examples module (`src/core/prompt-examples.ts`) provides model-appropriate examples.
+
+**Problem**: The original Ralph pattern was designed for Claude's strong instruction-following. Weaker models (like gpt-4.1, the default due to 0x cost) need more explicit examples.
+
+**Solution**: Dynamic prompt examples based on model strength:
+
+```mermaid
+graph LR
+    Model[Model Name] --> Strength[Strength Classification]
+    Strength --> Strong[Strong: Claude, GPT-4o, GPT-5]
+    Strength --> Medium[Medium: GPT-4-turbo, Gemini]
+    Strength --> Weak[Weak: gpt-4.1, unknown]
+    
+    Strong --> MinFormat[Format instructions only]
+    Medium --> MedFormat[Format + minimal examples]
+    Weak --> FullFormat[Format + full examples]
+```
+
+**Model Classification:**
+| Model | Strength | Example Content |
+|-------|----------|-----------------|
+| Claude (any) | Strong | Format instructions only |
+| GPT-4o, GPT-5 | Strong | Format instructions only |
+| GPT-4-turbo | Medium | Format + minimal examples |
+| Gemini | Medium | Format + minimal examples |
+| gpt-4.1 (default) | Weak | Format + detailed examples |
+| Unknown models | Weak | Format + detailed examples |
+
+**Configuration:**
+```typescript
+const builder = new ContextBuilder({
+  model: 'gpt-4.1', // Default - gets full examples
+});
+```
+
+**Example Detail Levels:**
+
+For **weak models**, full examples are included:
+```
+### Example: Create a new file
+[ACTION:CREATE]
+path: src/calculator.sh
+\`\`\`bash
+#!/bin/bash
+num1=$1
+op=$2
+num2=$3
+case $op in
+    "+") echo $((num1 + num2)) ;;
+    ...
+esac
+\`\`\`
+
+### Example: Edit an existing file
+[ACTION:EDIT]
+path: src/calculator.sh
+[OLD]
+case $op in
+    "+") echo $((num1 + num2)) ;;
+esac
+[NEW]
+case $op in
+    "+") echo $((num1 + num2)) ;;
+    "-") echo $((num1 - num2)) ;;
+esac
+```
+
+For **strong models**, only format instructions are included (they don't need examples).
+
+**Tests Added**: 22 new tests for prompt examples
+
+**Total Tests**: 267 passing
 
 ### 3. Enhanced Prompt Template
 

@@ -13,11 +13,13 @@ import { glob } from 'glob';
 import { debug, warn } from '../utils/index.js';
 import type { Task } from '../types/index.js';
 import type { IterationRecord } from './loop-state.js';
+import { getExamplesForModel } from './prompt-examples.js';
 
 const execAsync = promisify(exec);
 
 /**
  * Default Ralph prompt template (simplified per Ralph pattern)
+ * The {output_format} placeholder is replaced with model-appropriate examples
  */
 const DEFAULT_PROMPT_TEMPLATE = `You are an expert software engineer. Your task is: {task_title}
 
@@ -29,27 +31,7 @@ const DEFAULT_PROMPT_TEMPLATE = `You are an expert software engineer. Your task 
 {previous_progress}
 {feedback_section}
 
-## Output Format
-Use structured ACTION blocks to make changes:
-
-[ACTION:CREATE]
-path: <file path>
-\`\`\`
-<file content>
-\`\`\`
-
-[ACTION:EDIT]
-path: <file path>
-[OLD]
-<exact text to replace>
-[NEW]
-<replacement text>
-
-[ACTION:EXECUTE]
-command: <shell command>
-
-[ACTION:COMPLETE]
-reason: <why the task is done>
+{output_format}
 
 ## Instructions
 - Make small, focused changes
@@ -103,10 +85,17 @@ export interface ContextBuilderConfig {
   freshContextPerIteration?: boolean;
   /**
    * Whether to include meta info like iteration counts in prompt.
-   * Default: true (for backwards compatibility)
-   * Set to false to simplify prompts (Ralph pattern recommendation)
+   * Default: false (Ralph pattern recommendation)
+   * Set to true for legacy behavior with iteration/token counts
    */
   includeMetaInfo?: boolean;
+  /**
+   * Model name for prompt customization.
+   * Used to determine how many examples to include.
+   * Weaker models get more detailed examples.
+   * Default: 'gpt-4.1'
+   */
+  model?: string;
 }
 
 /**
@@ -120,6 +109,7 @@ const DEFAULT_CONFIG: ContextBuilderConfig = {
   includeProjectStructure: true,
   freshContextPerIteration: true, // Ralph pattern: rely on filesystem, not history
   includeMetaInfo: false, // Ralph pattern: don't include iteration/token counts
+  model: 'gpt-4.1', // Default model (0x cost multiplier)
 };
 
 /**
@@ -237,6 +227,9 @@ export class ContextBuilder {
       ? '## Context\n' + contextParts.join('\n\n')
       : '';
 
+    // Get model-appropriate output format examples
+    const outputFormat = getExamplesForModel(this.config.model ?? 'gpt-4.1');
+
     // Build the final prompt
     let prompt = template
       .replace('{task_title}', task.title)
@@ -248,7 +241,8 @@ export class ContextBuilder {
       .replace('{state_section}', stateSection)
       .replace('{context_section}', contextSection)
       .replace('{previous_progress}', previousProgress)
-      .replace('{feedback_section}', feedbackSection ?? '');
+      .replace('{feedback_section}', feedbackSection ?? '')
+      .replace('{output_format}', outputFormat);
 
     // Clean up multiple consecutive newlines
     prompt = prompt.replace(/\n{3,}/g, '\n\n').trim();

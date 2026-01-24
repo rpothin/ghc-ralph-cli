@@ -88,3 +88,17 @@ export type {
   IterationFeedback,
   FeedbackBuilderConfig,
 } from './feedback-builder.js';
+
+export {
+  CREATE_EXAMPLE,
+  EDIT_EXAMPLE,
+  DELETE_EXAMPLE,
+  EXECUTE_EXAMPLE,
+  COMPLETE_EXAMPLE,
+  ALL_EXAMPLES,
+  MINIMAL_EXAMPLES,
+  FORMAT_INSTRUCTIONS,
+  getPromptExamples,
+  getModelStrength,
+  getExamplesForModel,
+} from './prompt-examples.js';
