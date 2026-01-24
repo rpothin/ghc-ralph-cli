@@ -88,14 +88,14 @@ graph TB
 
 ### Key Components
 
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| **Loop Engine** | `src/core/loop-engine.ts` | Orchestrates the iteration loop |
-| **Context Builder** | `src/core/context-builder.ts` | Builds prompts with task context |
-| **Copilot Agent** | `src/integrations/copilot-agent.ts` | Interfaces with Copilot SDK |
-| **Plan Manager** | `src/core/plan-manager.ts` | Reads/updates task plans |
-| **Progress Tracker** | `src/core/progress-tracker.ts` | Tracks session progress |
-| **Checkpoint Manager** | `src/core/checkpoint-manager.ts` | Creates git checkpoints |
+| Component              | File                                | Responsibility                   |
+| ---------------------- | ----------------------------------- | -------------------------------- |
+| **Loop Engine**        | `src/core/loop-engine.ts`           | Orchestrates the iteration loop  |
+| **Context Builder**    | `src/core/context-builder.ts`       | Builds prompts with task context |
+| **Copilot Agent**      | `src/integrations/copilot-agent.ts` | Interfaces with Copilot SDK      |
+| **Plan Manager**       | `src/core/plan-manager.ts`          | Reads/updates task plans         |
+| **Progress Tracker**   | `src/core/progress-tracker.ts`      | Tracks session progress          |
+| **Checkpoint Manager** | `src/core/checkpoint-manager.ts`    | Creates git checkpoints          |
 
 ---
 
@@ -110,7 +110,7 @@ sequenceDiagram
     participant Config as Config Manager
     participant Plan as Plan Manager
     participant Git as Git Branch Manager
-    participant Loop as Loop Engine
+    participant LoopEng as Loop Engine
     participant Context as Context Builder
     participant Agent as Copilot Agent
     participant SDK as Copilot SDK
@@ -137,34 +137,32 @@ sequenceDiagram
     end
     
     rect rgb(240, 255, 240)
-        Note over Loop,API: Phase 3: Agent Initialization
-        CLI->>Loop: Start loop(task)
-        Loop->>Agent: Initialize
+        Note over LoopEng,API: Phase 3: Agent Initialization
+        CLI->>LoopEng: Start loop(task)
+        LoopEng->>Agent: Initialize
         Agent->>SDK: new CopilotClient()
         SDK->>SDK: client.start()
         SDK->>SDK: client.createSession(model)
-        Agent-->>Loop: Ready
+        Agent-->>LoopEng: Ready
     end
     
     rect rgb(255, 240, 255)
-        Note over Loop,API: Phase 4: Iteration Loop
-        loop Each Iteration (1 to maxIterations)
-            Loop->>Context: buildContext(task, iteration, history)
-            Context-->>Loop: Prompt with context
-            Loop->>Agent: execute(prompt)
-            Agent->>SDK: session.send({ prompt })
-            SDK->>API: HTTP Request
-            API-->>SDK: AI Response (streaming)
-            SDK-->>Agent: Response content
-            Agent-->>Loop: ExecutionResult
-            Loop->>Loop: Track tokens, update state
-            Loop->>Loop: Check limits & guards
-        end
+        Note over LoopEng,API: Phase 4: Iteration Loop
+        LoopEng->>Context: buildContext(task, iteration, history)
+        Context-->>LoopEng: Prompt with context
+        LoopEng->>Agent: execute(prompt)
+        Agent->>SDK: session.send({ prompt })
+        SDK->>API: HTTP Request
+        API-->>SDK: AI Response (streaming)
+        SDK-->>Agent: Response content
+        Agent-->>LoopEng: ExecutionResult
+        LoopEng->>LoopEng: Track tokens, update state
+        LoopEng->>LoopEng: Check limits & guards
     end
     
     rect rgb(248, 248, 248)
         Note over CLI,Plan: Phase 5: Completion
-        Loop-->>CLI: Final state
+        LoopEng-->>CLI: Final state
         CLI->>Plan: Mark task complete
         CLI->>Agent: destroy()
         CLI->>User: Summary report
@@ -208,13 +206,13 @@ graph TB
         CA[CopilotAgent]
     end
     
-    subgraph "GitHub Copilot SDK (@github/copilot-sdk)"
+    subgraph "GitHub Copilot SDK"
         CC[CopilotClient]
         CS[CopilotSession]
     end
     
     subgraph "GitHub Copilot CLI"
-        CLI_BIN[/usr/local/bin/copilot]
+        CLI_BIN["copilot binary"]
     end
     
     subgraph "GitHub Services"
@@ -355,7 +353,7 @@ flowchart TB
     FinalPrompt --> SendToCopilot[Send to Copilot Agent]
     
     subgraph "Copilot Execution"
-        SendToCopilot --> SDKSend[session.send(prompt)]
+        SendToCopilot --> SDKSend["session.send(prompt)"]
         SDKSend --> WaitResponse[Wait for Response]
         WaitResponse --> AccumulateContent[Accumulate Content]
         AccumulateContent --> SessionIdle{Session Idle?}
@@ -451,41 +449,41 @@ graph LR
 
 ### Identified Issues
 
-| Issue | Impact | Root Cause | Status |
-|-------|--------|------------|--------|
-| **No file operations** | AI describes changes but nothing happens | Response not parsed for file operations | ✅ FIXED |
-| **No objective exit criteria** | AI declares done but tests may fail | No external verification | ✅ FIXED |
-| **No feedback loop** | AI can't verify its changes worked | No mechanism to show execution results | ✅ FIXED |
-| **Context accumulation** | Model drifts with long context | Conversation history accumulates | ✅ FIXED |
-| **Complex prompt template** | Meta-info confuses weaker models | Iteration/token counts in prompt | ✅ FIXED |
-| **Model sensitivity** | Weaker models perform poorly | Prompt relies on implicit understanding | ✅ FIXED |
+| Issue                          | Impact                                   | Root Cause                              | Status  |
+| ------------------------------ | ---------------------------------------- | --------------------------------------- | ------- |
+| **No file operations**         | AI describes changes but nothing happens | Response not parsed for file operations | ✅ FIXED |
+| **No objective exit criteria** | AI declares done but tests may fail      | No external verification                | ✅ FIXED |
+| **No feedback loop**           | AI can't verify its changes worked       | No mechanism to show execution results  | ✅ FIXED |
+| **Context accumulation**       | Model drifts with long context           | Conversation history accumulates        | ✅ FIXED |
+| **Complex prompt template**    | Meta-info confuses weaker models         | Iteration/token counts in prompt        | ✅ FIXED |
+| **Model sensitivity**          | Weaker models perform poorly             | Prompt relies on implicit understanding | ✅ FIXED |
 
 ### Current vs Expected Flow
 
 ```mermaid
 sequenceDiagram
-    participant Loop as Loop Engine
+    participant LoopEng as Loop Engine
     participant Agent as Copilot Agent
     participant FS as Filesystem
 
-    Note over Loop,FS: CURRENT (Broken)
-    Loop->>Agent: "Implement addition in calculator.sh"
-    Agent-->>Loop: "Here's how to add it:<br/>```bash<br/>echo $((num1 + num2))<br/>```"
-    Loop->>Loop: Store response as summary
-    Note over FS: File NOT modified ❌
+    Note over LoopEng,FS: CURRENT (Broken)
+    LoopEng->>Agent: Implement addition in calculator.sh
+    Agent-->>LoopEng: Here is how to add it...
+    LoopEng->>LoopEng: Store response as summary
+    Note over FS: File NOT modified
 
-    Note over Loop,FS: EXPECTED (Working)
-    Loop->>Agent: "Implement addition in calculator.sh"
-    Agent-->>Loop: [STRUCTURED] CREATE calculator.sh:<br/>content...
-    Loop->>Loop: Parse response
-    Loop->>FS: Write calculator.sh
-    FS-->>Loop: Success
-    Loop->>Agent: "File created. Verify it works."
-    Agent-->>Loop: [STRUCTURED] EXECUTE: ./calculator.sh 2 + 3
-    Loop->>FS: Run command
-    FS-->>Loop: Output: 5
-    Loop->>Agent: "Output: 5"
-    Agent-->>Loop: [STRUCTURED] TASK_COMPLETE
+    Note over LoopEng,FS: EXPECTED (Working)
+    LoopEng->>Agent: Implement addition in calculator.sh
+    Agent-->>LoopEng: ACTION CREATE calculator.sh
+    LoopEng->>LoopEng: Parse response
+    LoopEng->>FS: Write calculator.sh
+    FS-->>LoopEng: Success
+    LoopEng->>Agent: File created. Verify it works.
+    Agent-->>LoopEng: ACTION EXECUTE ./calculator.sh 2 + 3
+    LoopEng->>FS: Run command
+    FS-->>LoopEng: Output: 5
+    LoopEng->>Agent: Output: 5
+    Agent-->>LoopEng: ACTION TASK_COMPLETE
 ```
 
 ---
@@ -540,13 +538,13 @@ graph LR
 The action executor component has been implemented in `src/core/action-executor.ts`:
 
 **Supported Actions:**
-| Action | Description | Example |
-|--------|-------------|---------|
-| `CREATE` | Create a new file | `[ACTION:CREATE] path: file.txt` |
-| `EDIT` | Edit existing file | `[ACTION:EDIT] path: file.txt [OLD]...[NEW]...` |
-| `DELETE` | Delete a file | `[ACTION:DELETE] path: file.txt` |
-| `EXECUTE` | Run shell command | `[ACTION:EXECUTE] command: npm test` |
-| `COMPLETE` | Mark task done | `[ACTION:COMPLETE] reason: Tests pass` |
+| Action     | Description        | Example                                         |
+| ---------- | ------------------ | ----------------------------------------------- |
+| `CREATE`   | Create a new file  | `[ACTION:CREATE] path: file.txt`                |
+| `EDIT`     | Edit existing file | `[ACTION:EDIT] path: file.txt [OLD]...[NEW]...` |
+| `DELETE`   | Delete a file      | `[ACTION:DELETE] path: file.txt`                |
+| `EXECUTE`  | Run shell command  | `[ACTION:EXECUTE] command: npm test`            |
+| `COMPLETE` | Mark task done     | `[ACTION:COMPLETE] reason: Tests pass`          |
 
 **Safety Features:**
 - Path validation (prevents escaping working directory)
@@ -587,13 +585,13 @@ graph LR
 - Detailed result summaries with pass/fail status
 
 **Example Detection:**
-| File | Detected Hooks |
-|------|---------------|
-| `package.json` with `scripts.test` | `npm test` (required) |
+| File                                | Detected Hooks             |
+| ----------------------------------- | -------------------------- |
+| `package.json` with `scripts.test`  | `npm test` (required)      |
 | `package.json` with `scripts.build` | `npm run build` (required) |
-| `package.json` with `scripts.lint` | `npm run lint` (optional) |
-| `Makefile` with `test:` target | `make test` (required) |
-| `pytest.ini` or `pyproject.toml` | `pytest` (required) |
+| `package.json` with `scripts.lint`  | `npm run lint` (optional)  |
+| `Makefile` with `test:` target      | `make test` (required)     |
+| `pytest.ini` or `pyproject.toml`    | `pytest` (required)        |
 
 ### 2.3 Feedback Builder ✅ IMPLEMENTED
 
@@ -669,11 +667,11 @@ The context builder now supports the Ralph pattern's core principle: fresh conte
 - Rely on git diff as primary source of "what has been done"
 
 **Configuration Options:**
-| Option | Default | Description |
-|--------|---------|-------------|
-| `freshContextPerIteration` | `true` | Skip previous iteration summaries |
-| `includeMetaInfo` | `false` | Skip iteration/token counts |
-| `includeGitDiff` | `true` | Include current changes (essential!) |
+| Option                     | Default | Description                          |
+| -------------------------- | ------- | ------------------------------------ |
+| `freshContextPerIteration` | `true`  | Skip previous iteration summaries    |
+| `includeMetaInfo`          | `false` | Skip iteration/token counts          |
+| `includeGitDiff`           | `true`  | Include current changes (essential!) |
 
 **Prompt Template Changes:**
 
@@ -718,14 +716,14 @@ graph LR
 ```
 
 **Model Classification:**
-| Model | Strength | Example Content |
-|-------|----------|-----------------|
-| Claude (any) | Strong | Format instructions only |
-| GPT-4o, GPT-5 | Strong | Format instructions only |
-| GPT-4-turbo | Medium | Format + minimal examples |
-| Gemini | Medium | Format + minimal examples |
-| gpt-4.1 (default) | Weak | Format + detailed examples |
-| Unknown models | Weak | Format + detailed examples |
+| Model             | Strength | Example Content            |
+| ----------------- | -------- | -------------------------- |
+| Claude (any)      | Strong   | Format instructions only   |
+| GPT-4o, GPT-5     | Strong   | Format instructions only   |
+| GPT-4-turbo       | Medium   | Format + minimal examples  |
+| Gemini            | Medium   | Format + minimal examples  |
+| gpt-4.1 (default) | Weak     | Format + detailed examples |
+| Unknown models    | Weak     | Format + detailed examples |
 
 **Configuration:**
 ```typescript
@@ -821,28 +819,25 @@ reason: explanation of what was done
 
 ```mermaid
 sequenceDiagram
-    participant Loop as Loop Engine
+    participant LoopEng as Loop Engine
     participant Parser as Response Parser
     participant Exec as Action Executor
     participant Agent as Copilot Agent
 
-    Loop->>Agent: Send prompt with task
-    Agent-->>Loop: Response with actions
+    LoopEng->>Agent: Send prompt with task
+    Agent-->>LoopEng: Response with actions
     
-    Loop->>Parser: Parse response
-    Parser-->>Loop: List of actions
+    LoopEng->>Parser: Parse response
+    Parser-->>LoopEng: List of actions
     
-    loop For each action
-        Loop->>Exec: Execute action
-        Exec-->>Loop: Result (success/failure, output)
-        Loop->>Loop: Accumulate results
-    end
+    LoopEng->>Exec: Execute action
+    Exec-->>LoopEng: Result with success/failure and output
+    LoopEng->>LoopEng: Accumulate results
     
     alt Has COMPLETE action
-        Loop->>Loop: Mark task complete
+        LoopEng->>LoopEng: Mark task complete
     else No COMPLETE
-        Loop->>Agent: Send feedback prompt
-        Note over Loop,Agent: "Actions executed:<br/>- Created file.sh ✓<br/>- Test output: FAIL<br/>Continue working on task."
+        LoopEng->>Agent: Send feedback prompt with results
     end
 ```
 
