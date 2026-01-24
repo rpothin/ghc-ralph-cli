@@ -80,7 +80,7 @@ async function showCurrentStatus(jsonOutput?: boolean): Promise<void> {
       success('No active Ralph session');
       console.log('');
       console.log(dim('  Start a new session with:'));
-      console.log(`    ${code('ralph run --task "your task description"')}`);
+      console.log(`    ${code('ghcralph run --task "your task description"')}`);
       console.log('');
     }
     return;
@@ -170,14 +170,14 @@ async function showCurrentStatus(jsonOutput?: boolean): Promise<void> {
   // Helpful tips based on status
   console.log(dim('  💡 Tips:'));
   if (session.status === 'In Progress' || session.status === 'Paused') {
-    console.log(dim(`     • Run ${code("ralph rollback")} to undo the last iteration`));
-    console.log(dim(`     • Run ${code("ralph status --files")} to see all file changes`));
+    console.log(dim(`     • Run ${code("ghcralph rollback")} to undo the last iteration`));
+    console.log(dim(`     • Run ${code("ghcralph status --files")} to see all file changes`));
   } else if (session.status === 'Completed') {
     console.log(dim(`     • Review changes with ${code("git diff HEAD~" + session.iteration)}`));
     console.log(dim(`     • Create a PR with ${code("gh pr create")}`));
   } else if (session.status === 'Failed') {
     console.log(dim(`     • Check logs: ${code(progressPath)}`));
-    console.log(dim(`     • Rollback with ${code("ralph rollback --all --force")}`));
+    console.log(dim(`     • Rollback with ${code("ghcralph rollback --all --force")}`));
   }
   console.log('');
 }
@@ -274,7 +274,7 @@ async function getModifiedFiles(): Promise<Array<{ path: string; status: string 
 async function showHistory(jsonOutput?: boolean): Promise<void> {
   try {
     // Find Ralph commits
-    const { stdout } = await execAsync('git --no-pager log --oneline --grep="ralph:" -n 50');
+    const { stdout } = await execAsync('git --no-pager log --oneline --grep="ghcralph:" -n 50');
     const lines = stdout.trim().split('\n').filter(Boolean);
     
     if (lines.length === 0) {
@@ -341,7 +341,7 @@ async function showHistory(jsonOutput?: boolean): Promise<void> {
     }
     
     console.log('');
-    console.log(dim('  💡 Use "ralph rollback --to <hash>" to restore to a specific commit'));
+    console.log(dim('  💡 Use "ghcralph rollback --to <hash>" to restore to a specific commit'));
     console.log('');
   } catch {
     if (jsonOutput) {

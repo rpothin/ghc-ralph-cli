@@ -1,14 +1,28 @@
-# Ralph CLI
+# GitHub Copilot Ralph CLI
 
-[![npm version](https://img.shields.io/npm/v/ralph-cli.svg)](https://www.npmjs.com/package/ralph-cli)
+[![npm version](https://img.shields.io/npm/v/ghcralph-cli.svg)](https://www.npmjs.com/package/ghcralph-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
 A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot.
 
-## What is Ralph CLI?
+## Credits & Attribution
 
-Ralph CLI implements the **Ralph Wiggum agentic coding pattern** - a simple, safe, and well-documented approach to running autonomous AI coding loops. Instead of writing complex prompts, you describe what you want done and Ralph iteratively works towards completing it.
+**GitHub Copilot Ralph** is an opinionated interpretation of the **Ralph Wiggum loop** approach, originally proposed by **[Geoffrey Huntley](https://ghuntley.com/)**. The original concept and documentation can be found at [ghuntley.com/ralph](https://ghuntley.com/ralph/).
+
+This CLI implementation was created by **[Raphael Pothin](https://github.com/rpothin)** to make the Ralph Wiggum approach:
+
+- 📐 **More structured** - with clear phases and checkpoints
+- 🛡️ **Safer** - with git isolation, file safeguards, and resource limits
+- 🎯 **More accessible** - for developers new to agentic coding patterns
+- 🏢 **Enterprise-ready** - with configuration, audit trails, and controls
+- 🔗 **GitHub ecosystem integrated** - leveraging GitHub Copilot SDK and optionally GitHub Issues
+
+While strongly inspired by Geoffrey Huntley's original Ralph Wiggum loop, this implementation reflects the author's own perspective on making autonomous coding loops practical and safe for everyday use.
+
+## What is GitHub Copilot Ralph?
+
+GitHub Copilot Ralph implements the **Ralph Wiggum agentic coding pattern** - a simple, safe, and well-documented approach to running autonomous AI coding loops powered by GitHub Copilot. Instead of writing complex prompts, you describe what you want done and GitHub Copilot Ralph iteratively works towards completing it.
 
 ### The Ralph Wiggum Pattern
 
@@ -34,28 +48,42 @@ This approach prioritizes **safety** (automatic checkpoints, git isolation) and 
 - 🔧 **Highly Configurable**: Customize behavior via CLI, env vars, or config files
 - 💻 **Cross-Platform**: Works on Windows, macOS, and Linux
 
+## Prerequisites
+
+Before installing GitHub Copilot Ralph, ensure you have:
+
+1. **Node.js** 18.0.0 or higher
+2. **Git** (for branch isolation and checkpoints)
+3. **GitHub Copilot CLI** - Required for the underlying Copilot SDK
+   ```bash
+   # Install GitHub Copilot CLI first
+   gh extension install github/gh-copilot
+   ```
+   See the [GitHub Copilot SDK Getting Started guide](https://github.com/github/copilot-sdk?tab=readme-ov-file#getting-started) for more details.
+4. **GitHub Copilot access** - An active GitHub Copilot subscription
+
 ## Quick Start (5 minutes)
 
-### 1. Install Ralph CLI
+### 1. Install GitHub Copilot Ralph
 
 ```bash
-npm install -g ralph-cli
+npm install -g ghcralph-cli
 ```
 
 ### 2. Initialize in your project
 
 ```bash
 cd your-project
-ralph init
+ghcralph init
 ```
 
 ### 3. Run your first task
 
 ```bash
-ralph run --task "Add a README badge showing the build status"
+ghcralph run --task "Add a README badge showing the build status"
 ```
 
-Ralph will:
+GitHub Copilot Ralph will:
 - Create an isolated git branch
 - Work on the task iteratively
 - Checkpoint each iteration with git commits
@@ -64,13 +92,13 @@ Ralph will:
 ### 4. Check progress
 
 ```bash
-ralph status
+ghcralph status
 ```
 
 ### 5. Rollback if needed
 
 ```bash
-ralph rollback --iterations 1
+ghcralph rollback --iterations 1
 ```
 
 ## Installation
@@ -78,24 +106,18 @@ ralph rollback --iterations 1
 ### npm (Recommended)
 
 ```bash
-npm install -g ralph-cli
+npm install -g ghcralph-cli
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/your-org/ralph-cli.git
-cd ralph-cli
+git clone https://github.com/rpothin/ghc-ralph-cli.git
+cd ghc-ralph-cli
 npm install
 npm run build
 npm link
 ```
-
-## Requirements
-
-- **Node.js** 18.0.0 or higher
-- **Git** (for branch isolation and checkpoints)
-- **GitHub Copilot** access (via GitHub CLI or API token)
 
 ## Basic Usage
 
@@ -103,62 +125,62 @@ npm link
 
 ```bash
 # Inline task
-ralph run --task "Add input validation to the login form"
+ghcralph run --task "Add input validation to the login form"
 
 # Task from file
-ralph run --file tasks/add-validation.md
+ghcralph run --file tasks/add-validation.md
 ```
 
 ### Plan-Based Execution
 
 ```bash
 # From local Markdown plan
-ralph run --plan TODO.md
+ghcralph run --plan TODO.md
 
 # From GitHub Issues
-ralph run --github owner/repo --label "ready"
+ghcralph run --github owner/repo --label "ready"
 ```
 
 ### Advanced Options
 
 ```bash
 # Control iterations and tokens
-ralph run --task "Refactor auth" --max-iterations 20 --max-tokens 50000
+ghcralph run --task "Refactor auth" --max-iterations 20 --max-tokens 50000
 
 # Specify context files
-ralph run --task "Fix tests" --context "src/**/*.test.ts"
+ghcralph run --task "Fix tests" --context "src/**/*.test.ts"
 
 # Use a specific branch
-ralph run --task "Add feature" --branch feature/my-feature
+ghcralph run --task "Add feature" --branch feature/my-feature
 
 # Preview without executing
-ralph run --task "Big change" --dry-run
+ghcralph run --task "Big change" --dry-run
 
 # Long-running task with timeout
-ralph run --task "Large refactor" --unlimited --timeout 60
+ghcralph run --task "Large refactor" --unlimited --timeout 60
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `ralph init` | Initialize Ralph in a repository |
-| `ralph run` | Execute an agentic coding loop |
-| `ralph status` | Check current session status |
-| `ralph rollback` | Revert to a previous checkpoint |
-| `ralph config` | View or modify configuration |
-| `ralph help` | Get help for any command |
+| `ghcralph init` | Initialize GitHub Copilot Ralph in a repository |
+| `ghcralph run` | Execute an agentic coding loop |
+| `ghcralph status` | Check current session status |
+| `ghcralph rollback` | Revert to a previous checkpoint |
+| `ghcralph config` | View or modify configuration |
+| `ghcralph help` | Get help for any command |
 
-Use `ralph <command> --help` for detailed options.
+Use `ghcralph <command> --help` for detailed options.
 
 ## Configuration
 
-Ralph uses a hierarchical configuration system:
+GitHub Copilot Ralph uses a hierarchical configuration system:
 
 1. **CLI flags** (highest priority)
-2. **Environment variables** (`RALPH_*`)
-3. **Local config** (`.ralph/config.json`)
-4. **Global config** (`~/.config/ralph/config.json`)
+2. **Environment variables** (`GHCRALPH_*`)
+3. **Local config** (`.ghcralph/config.json`)
+4. **Global config** (`~/.config/ghcralph/config.json`)
 
 ### Configuration Options
 
@@ -167,9 +189,9 @@ Ralph uses a hierarchical configuration system:
 | `planSource` | `local` | Plan source: `github` or `local` |
 | `maxIterations` | `10` | Maximum loop iterations |
 | `maxTokens` | `100000` | Token budget |
-| `defaultModel` | `gpt-4` | Copilot model to use |
+| `defaultModel` | `gpt-4.1` | Copilot model to use (0x multiplier) |
 | `autoCommit` | `true` | Auto-commit after iterations |
-| `branchPrefix` | `ralph/` | Prefix for Ralph branches |
+| `branchPrefix` | `ghcralph/` | Prefix for GitHub Copilot Ralph branches |
 
 ### Example Configuration
 
@@ -178,26 +200,26 @@ Ralph uses a hierarchical configuration system:
   "planSource": "github",
   "maxIterations": 15,
   "maxTokens": 50000,
-  "defaultModel": "gpt-4",
+  "defaultModel": "gpt-4.1",
   "autoCommit": true,
-  "branchPrefix": "ralph/",
+  "branchPrefix": "ghcralph/",
   "githubRepo": "owner/repo"
 }
 ```
 
 ## Safety Features
 
-Ralph is designed with safety as a priority:
+GitHub Copilot Ralph is designed with safety as a priority:
 
 ### 🌿 Git Branch Isolation
-- Automatically creates `ralph/` prefixed branches
+- Automatically creates `ghcralph/` prefixed branches
 - Never modifies `main` or `master` directly
 - Easy to discard unsuccessful attempts
 
 ### 💾 Automatic Checkpoints
 - Commits after each successful iteration
-- Message format: `ralph: iteration N - summary`
-- Easy rollback with `ralph rollback`
+- Message format: `ghcralph: iteration N - summary`
+- Easy rollback with `ghcralph rollback`
 
 ### 🛡️ File Deletion Safeguards
 - Tracks files that existed before session
@@ -217,10 +239,11 @@ Ralph is designed with safety as a priority:
 
 ## Authentication
 
-Ralph uses GitHub for AI access:
+GitHub Copilot Ralph uses GitHub for AI access:
 
 1. **GitHub CLI** (recommended): `gh auth login`
-2. **Environment variable**: `GITHUB_TOKEN` or `GH_TOKEN`
+2. **GitHub Copilot CLI**: Ensure it's installed: `gh extension install github/gh-copilot`
+3. **Environment variable** (alternative): `GITHUB_TOKEN` or `GH_TOKEN`
 
 ## Troubleshooting
 
@@ -228,11 +251,13 @@ Ralph uses GitHub for AI access:
 Run `git init` first, or navigate to an existing git repository.
 
 ### "Failed to initialize Copilot agent"
-Ensure you're authenticated with GitHub:
+Ensure you have GitHub Copilot CLI installed and are authenticated:
 ```bash
+# Install GitHub Copilot CLI if not already installed
+gh extension install github/gh-copilot
+
+# Authenticate with GitHub
 gh auth login
-# or
-export GITHUB_TOKEN=your_token
 ```
 
 ### "Maximum iterations reached"
@@ -240,19 +265,19 @@ Increase the limit: `--max-iterations 20`
 Or for very long tasks: `--unlimited`
 
 ### Progress seems stuck
-Check status: `ralph status`
-View checkpoints: `ralph rollback --list`
-Rollback if needed: `ralph rollback`
+Check status: `ghcralph status`
+View checkpoints: `ghcralph rollback --list`
+Rollback if needed: `ghcralph rollback`
 
 ## Philosophy
 
-Ralph CLI is built on these principles:
+GitHub Copilot Ralph is built on these principles:
 
-1. **Simplicity first**: Mirror the elegant simplicity of the original Ralph loop
+1. **Simplicity first**: Mirror the elegant simplicity of Geoffrey Huntley's original Ralph loop
 2. **Safety by design**: Git isolation, automatic checkpoints, cost controls
 3. **Human-friendly**: Markdown progress, clear documentation, easy rollback
 4. **Cross-platform**: Works seamlessly on Windows, macOS, and Linux
-5. **Transparent**: You can always see what Ralph is doing and undo it
+5. **Transparent**: You can always see what GitHub Copilot Ralph is doing and undo it
 
 ## Contributing
 
@@ -260,4 +285,4 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## License
 
-MIT © [Your Name]
+MIT © [Raphael Pothin](https://github.com/rpothin)

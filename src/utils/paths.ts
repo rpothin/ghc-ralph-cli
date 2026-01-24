@@ -1,7 +1,7 @@
 /**
  * Path Utilities
  *
- * Cross-platform path handling utilities
+ * Cross-platform path handling utilities for GitHub Copilot Ralph
  */
 
 import path from 'node:path';
@@ -33,7 +33,7 @@ export function getHomeDir(): string {
 }
 
 /**
- * Get the Ralph config directory
+ * Get the GitHub Copilot Ralph config directory
  */
 export function getConfigDir(): string {
   const platform = getPlatform();
@@ -41,25 +41,25 @@ export function getConfigDir(): string {
   if (platform === 'windows') {
     const appData = process.env['APPDATA'];
     if (appData) {
-      return path.join(appData, 'ralph-cli');
+      return path.join(appData, 'ghcralph');
     }
   }
 
   // XDG Base Directory Specification for Unix-like systems
   const xdgConfig = process.env['XDG_CONFIG_HOME'];
   if (xdgConfig) {
-    return path.join(xdgConfig, 'ralph');
+    return path.join(xdgConfig, 'ghcralph');
   }
 
-  return path.join(getHomeDir(), '.config', 'ralph');
+  return path.join(getHomeDir(), '.config', 'ghcralph');
 }
 
 /**
- * Get the Ralph local state directory (in the current project)
+ * Get the GitHub Copilot Ralph local state directory (in the current project)
  */
 export function getLocalStateDir(projectRoot?: string): string {
   const root = projectRoot ?? process.cwd();
-  return path.join(root, '.ralph');
+  return path.join(root, '.ghcralph');
 }
 
 /**

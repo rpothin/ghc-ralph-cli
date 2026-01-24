@@ -1,14 +1,14 @@
 # MCP Tool Extension Guide
 
-Ralph CLI supports extending functionality with custom MCP (Model Context Protocol) tools.
+GitHub Copilot Ralph supports extending functionality with custom MCP (Model Context Protocol) tools.
 
 ## What is MCP?
 
-MCP (Model Context Protocol) is a standard for connecting AI models to external tools and data sources. Ralph CLI can connect to MCP servers to give the AI agent access to custom tools.
+MCP (Model Context Protocol) is a standard for connecting AI models to external tools and data sources. GitHub Copilot Ralph can connect to MCP servers to give the AI agent access to custom tools.
 
 ## Configuration
 
-Add MCP servers to your `.ralph/config.json`:
+Add MCP servers to your `.ghcralph/config.json`:
 
 ```json
 {
@@ -220,7 +220,7 @@ Or on error:
 Run Ralph with `--verbose` to see MCP connection details:
 
 ```bash
-ralph run --task "..." --verbose
+ghcralph run --task "..." --verbose
 ```
 
 ## Security Considerations

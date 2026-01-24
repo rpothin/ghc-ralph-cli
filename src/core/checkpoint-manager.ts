@@ -16,7 +16,7 @@ const execAsync = promisify(exec);
 export interface CheckpointConfig {
   /** Whether to auto-commit after each iteration (default: true) */
   autoCommit: boolean;
-  /** Prefix for commit messages (default: 'ralph:') */
+  /** Prefix for commit messages (default: 'ghcralph:') */
   messagePrefix: string;
   /** Working directory */
   cwd: string;
@@ -27,7 +27,7 @@ export interface CheckpointConfig {
  */
 const DEFAULT_CONFIG: CheckpointConfig = {
   autoCommit: true,
-  messagePrefix: 'ralph:',
+  messagePrefix: 'ghcralph:',
   cwd: process.cwd(),
 };
 

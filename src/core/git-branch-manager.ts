@@ -14,7 +14,7 @@ const execAsync = promisify(exec);
  * Git branch manager configuration
  */
 export interface GitBranchConfig {
-  /** Prefix for Ralph branches (default: 'ralph/') */
+  /** Prefix for GitHub Copilot Ralph branches (default: 'ralph/') */
   branchPrefix: string;
   /** Whether to auto-create branches without prompting */
   autoCreate: boolean;
@@ -129,7 +129,7 @@ export class GitBranchManager {
    */
   async stashChanges(message?: string): Promise<boolean> {
     try {
-      const stashMessage = message ?? `ralph: auto-stash at ${new Date().toISOString()}`;
+      const stashMessage = message ?? `ghcralph: auto-stash at ${new Date().toISOString()}`;
       await execAsync(`git stash push -m "${stashMessage}"`, { cwd: this.config.cwd });
       debug(`Stashed changes: ${stashMessage}`);
       return true;
@@ -272,7 +272,7 @@ export class GitBranchManager {
   }
 
   /**
-   * Get the list of Ralph branches
+   * Get the list of GitHub Copilot Ralph branches
    */
   async listRalphBranches(): Promise<string[]> {
     try {

@@ -138,17 +138,17 @@ export function registerRunCommand(program: Command): void {
     .option('--dry-run', 'Show what would happen without executing')
     .addHelpText('after', `
 Examples:
-  $ ralph run --task "Add input validation to the login form"
-  $ ralph run --file tasks/refactor.md --max-iterations 5
-  $ ralph run --plan TODO.md
-  $ ralph run --github owner/repo --label "ralph-ready"
-  $ ralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
-  $ ralph run --task "Large refactor" --unlimited --timeout 60
+  $ ghcralph run --task "Add input validation to the login form"
+  $ ghcralph run --file tasks/refactor.md --max-iterations 5
+  $ ghcralph run --plan TODO.md
+  $ ghcralph run --github owner/repo --label "ralph-ready"
+  $ ghcralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
+  $ ghcralph run --task "Large refactor" --unlimited --timeout 60
 
 See also:
-  ralph status     View current session progress
-  ralph rollback   Undo recent changes
-  ralph init       Initialize Ralph in your project
+  ghcralph status     View current session progress
+  ghcralph rollback   Undo recent changes
+  ghcralph init       Initialize Ralph in your project
 `)
     .action(async (options: RunOptions) => {
       if (!options.task && !options.file && !options.plan && !options.github) {
@@ -230,7 +230,7 @@ See also:
 
       // Show configuration
       console.log('');
-      console.log(heading('🤖 Ralph CLI - Run'));
+      console.log(heading('🤖 GitHub Copilot Ralph - Run'));
       console.log('');
       if (options.github) {
         console.log(`  ${dim('Source:')} GitHub Issues (${code(options.github)})`);

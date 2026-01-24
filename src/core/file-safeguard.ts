@@ -31,7 +31,7 @@ export interface FileSafeguardConfig {
 const DEFAULT_CONFIG: FileSafeguardConfig = {
   cwd: process.cwd(),
   allowDeleteExisting: false,
-  baselinePath: '.ralph/baseline-files.json',
+  baselinePath: '.ghcralph/baseline-files.json',
 };
 
 /**

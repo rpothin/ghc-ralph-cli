@@ -1,7 +1,7 @@
 /**
  * Configuration Schema
  *
- * Type definitions for Ralph CLI configuration
+ * Type definitions for GitHub Copilot Ralph CLI configuration
  */
 
 /**
@@ -26,7 +26,7 @@ export interface MCPServerConfiguration {
 }
 
 /**
- * Ralph CLI configuration
+ * GitHub Copilot Ralph CLI configuration
  */
 export interface RalphConfiguration {
   /** Source for the plan: GitHub Issues or local Markdown */
@@ -35,11 +35,11 @@ export interface RalphConfiguration {
   maxIterations: number;
   /** Maximum token budget for the session */
   maxTokens: number;
-  /** Default Copilot model to use */
+  /** Default Copilot model to use (gpt-4.1 has 0x multiplier) */
   defaultModel: string;
   /** Whether to auto-commit after each iteration */
   autoCommit: boolean;
-  /** Prefix for Ralph branches */
+  /** Prefix for GitHub Copilot Ralph branches */
   branchPrefix: string;
   /** GitHub repository (owner/repo) for GitHub plan source */
   githubRepo?: string;
@@ -58,9 +58,9 @@ export const DEFAULT_CONFIG: RalphConfiguration = {
   planSource: 'local',
   maxIterations: 10,
   maxTokens: 100000,
-  defaultModel: 'gpt-4',
+  defaultModel: 'gpt-4.1',
   autoCommit: true,
-  branchPrefix: 'ralph/',
+  branchPrefix: 'ghcralph/',
 };
 
 /**

@@ -32,7 +32,7 @@ async function getRalphCommits(limit: number = 10): Promise<Array<{ hash: string
         const [hash, message, date] = line.split('|');
         return { hash: hash ?? '', message: message ?? '', date: date ?? '' };
       })
-      .filter(c => c.message.startsWith('ralph:'));
+      .filter(c => c.message.startsWith('ghcralph:'));
     
     return commits;
   } catch {
@@ -65,7 +65,7 @@ async function getPreSessionCommit(): Promise<string | null> {
     
     for (let i = 0; i < lines.length; i++) {
       const [hash, message] = lines[i]?.split('|') ?? [];
-      if (message?.startsWith('ralph:')) {
+      if (message?.startsWith('ghcralph:')) {
         firstRalphCommit = hash ?? null;
       } else if (firstRalphCommit) {
         // Found the first non-Ralph commit after Ralph commits
@@ -100,11 +100,11 @@ export function registerRollbackCommand(program: Command): void {
     .option('--force', 'Skip confirmation prompt')
     .addHelpText('after', `
 Examples:
-  $ ralph rollback                    # Undo last iteration
-  $ ralph rollback --iterations 3     # Undo last 3 iterations
-  $ ralph rollback --to abc1234       # Rollback to specific commit
-  $ ralph rollback --all --force      # Reset to pre-session state
-  $ ralph rollback --list             # Show available checkpoints
+  $ ghcralph rollback                    # Undo last iteration
+  $ ghcralph rollback --iterations 3     # Undo last 3 iterations
+  $ ghcralph rollback --to abc1234       # Rollback to specific commit
+  $ ghcralph rollback --all --force      # Reset to pre-session state
+  $ ghcralph rollback --list             # Show available checkpoints
 
 Safety:
   - All rollback operations require --force flag
@@ -112,8 +112,8 @@ Safety:
   - Original state can be recovered from git reflog
 
 See also:
-  ralph status    View current progress
-  ralph run       Start a new coding loop
+  ghcralph status    View current progress
+  ghcralph run       Start a new coding loop
 `)
     .action(async (options: RollbackOptions) => {
       // List checkpoints
@@ -133,7 +133,7 @@ See also:
         }
         
         console.log('');
-        info(`Use ${code('ralph rollback --to <hash>')} to rollback to a specific checkpoint`);
+        info(`Use ${code('ghcralph rollback --to <hash>')} to rollback to a specific checkpoint`);
         return;
       }
 

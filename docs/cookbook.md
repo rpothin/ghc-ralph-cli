@@ -1,6 +1,6 @@
-# Ralph CLI Cookbook
+# GitHub Copilot Ralph Cookbook
 
-Common patterns and workflows for getting the most out of Ralph CLI.
+Common patterns and workflows for getting the most out of GitHub Copilot Ralph.
 
 ## Table of Contents
 
@@ -23,14 +23,14 @@ Common patterns and workflows for getting the most out of Ralph CLI.
 
 ```bash
 # Simple bug fix
-ralph run --task "Fix the login button not responding on mobile devices"
+ghcralph run --task "Fix the login button not responding on mobile devices"
 
 # With relevant context
-ralph run --task "Fix issue #42: Form validation fails for email addresses" \
+ghcralph run --task "Fix issue #42: Form validation fails for email addresses" \
   --context "src/components/Form*.tsx" "src/utils/validation.ts"
 
 # From a GitHub issue
-ralph run --github owner/repo --label "bug"
+ghcralph run --github owner/repo --label "bug"
 ```
 
 ### Tips for Success
@@ -38,7 +38,7 @@ ralph run --github owner/repo --label "bug"
 1. **Be specific about the bug**: Include error messages, reproduction steps
 2. **Provide context files**: Point Ralph to relevant code with `--context`
 3. **Start with low iterations**: `--max-iterations 5` for simple bugs
-4. **Check after each iteration**: Use `ralph status` to monitor progress
+4. **Check after each iteration**: Use `ghcralph status` to monitor progress
 
 ### Common Pitfalls
 
@@ -56,13 +56,13 @@ ralph run --github owner/repo --label "bug"
 
 ```bash
 # Simple feature
-ralph run --task "Add a dark mode toggle to the settings page"
+ghcralph run --task "Add a dark mode toggle to the settings page"
 
 # Multi-step feature from a plan
-ralph run --plan features/user-preferences.md
+ghcralph run --plan features/user-preferences.md
 
 # With more iterations for complex features
-ralph run --task "Implement user authentication with JWT" \
+ghcralph run --task "Implement user authentication with JWT" \
   --max-iterations 15 \
   --context "src/auth/**/*.ts"
 ```
@@ -71,7 +71,7 @@ ralph run --task "Implement user authentication with JWT" \
 
 1. **Break down large features**: Create a plan file with sub-tasks
 2. **Use higher iteration limits**: Features need more steps than bug fixes
-3. **Review intermediate checkpoints**: Check progress with `ralph rollback --list`
+3. **Review intermediate checkpoints**: Check progress with `ghcralph rollback --list`
 4. **Commit related work first**: Start with a clean git state
 
 ### Common Pitfalls
@@ -102,13 +102,13 @@ ralph run --task "Implement user authentication with JWT" \
 
 ```bash
 # Specific refactoring
-ralph run --task "Refactor the UserService class to use dependency injection"
+ghcralph run --task "Refactor the UserService class to use dependency injection"
 
 # Code cleanup
-ralph run --task "Remove unused imports and dead code from src/utils/"
+ghcralph run --task "Remove unused imports and dead code from src/utils/"
 
 # Performance improvement
-ralph run --task "Optimize the search function to use memoization" \
+ghcralph run --task "Optimize the search function to use memoization" \
   --context "src/services/search.ts"
 ```
 
@@ -135,14 +135,14 @@ ralph run --task "Optimize the search function to use memoization" \
 
 ```bash
 # Add unit tests
-ralph run --task "Add unit tests for the PaymentService class" \
+ghcralph run --task "Add unit tests for the PaymentService class" \
   --context "src/services/PaymentService.ts"
 
 # Improve coverage
-ralph run --task "Add tests to achieve 80% coverage for src/utils/"
+ghcralph run --task "Add tests to achieve 80% coverage for src/utils/"
 
 # Add integration tests
-ralph run --task "Add integration tests for the /api/users endpoints"
+ghcralph run --task "Add integration tests for the /api/users endpoints"
 ```
 
 ### Tips for Success
@@ -168,13 +168,13 @@ ralph run --task "Add integration tests for the /api/users endpoints"
 
 ```bash
 # Generate API docs
-ralph run --task "Add JSDoc comments to all exported functions in src/api/"
+ghcralph run --task "Add JSDoc comments to all exported functions in src/api/"
 
 # Update README
-ralph run --task "Update README.md to document the new CLI options"
+ghcralph run --task "Update README.md to document the new CLI options"
 
 # Create documentation
-ralph run --task "Create a CONTRIBUTING.md guide for new contributors"
+ghcralph run --task "Create a CONTRIBUTING.md guide for new contributors"
 ```
 
 ### Tips for Success
@@ -200,13 +200,13 @@ ralph run --task "Create a CONTRIBUTING.md guide for new contributors"
 
 ```bash
 # Address specific feedback
-ralph run --task "Address code review feedback: add error handling to API calls"
+ghcralph run --task "Address code review feedback: add error handling to API calls"
 
 # Multiple review items
-ralph run --plan pr-feedback.md
+ghcralph run --plan pr-feedback.md
 
 # Quick style fixes
-ralph run --task "Fix linting issues and apply consistent formatting" \
+ghcralph run --task "Fix linting issues and apply consistent formatting" \
   --max-iterations 3
 ```
 
@@ -236,20 +236,20 @@ ralph run --task "Fix linting issues and apply consistent formatting" \
 
 ```bash
 # Check what's happening
-ralph status
+ghcralph status
 
 # See the last few checkpoints
-ralph rollback --list
+ghcralph rollback --list
 
 # If needed, stop and rollback
-ralph rollback --iterations 1
+ghcralph rollback --iterations 1
 ```
 
 ### Token budget exhausted
 
 ```bash
 # Increase budget for next run
-ralph run --task "Continue previous work" --max-tokens 200000
+ghcralph run --task "Continue previous work" --max-tokens 200000
 
 # Or break task into smaller pieces
 ```
@@ -258,23 +258,23 @@ ralph run --task "Continue previous work" --max-tokens 200000
 
 ```bash
 # For long tasks, use timeout instead of iteration limit
-ralph run --task "Large refactor" --unlimited --timeout 60
+ghcralph run --task "Large refactor" --unlimited --timeout 60
 
 # Or increase iteration limit
-ralph run --task "..." --max-iterations 30
+ghcralph run --task "..." --max-iterations 30
 ```
 
 ### Changes not what I expected
 
 ```bash
 # Review what was done
-ralph rollback --list
+ghcralph rollback --list
 
 # Undo specific iterations
-ralph rollback --iterations 2
+ghcralph rollback --iterations 2
 
 # Start fresh on a different branch
-ralph run --task "..." --branch new-attempt
+ghcralph run --task "..." --branch new-attempt
 ```
 
 ### Authentication issues
@@ -324,7 +324,7 @@ Ralph is powerful but not always the right tool:
 
 1. **Start small**: Use low iteration limits until you're confident
 2. **Provide context**: Use `--context` to narrow relevant files
-3. **Review checkpoints**: Use `ralph rollback --list` regularly
+3. **Review checkpoints**: Use `ghcralph rollback --list` regularly
 4. **Use plans for complex work**: Break big tasks into checklists
 5. **Keep branches**: Don't merge until you've reviewed
 6. **Run tests**: Always verify behavior after Ralph's changes

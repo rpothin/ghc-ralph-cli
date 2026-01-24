@@ -1,4 +1,8 @@
-# Ralph CLI Development Journal
+# GitHub Copilot Ralph CLI Development Journal
+
+## Credits
+- **Original Concept**: Ralph Wiggum loop by [Geoffrey Huntley](https://ghuntley.com/ralph/)
+- **This Implementation**: [Raphael Pothin](https://github.com/rpothin)
 
 ## 2026-01-24 - Issue #1: Project Initialization
 
@@ -360,17 +364,36 @@
 ## 2026-01-24 - Issue #20: Status Command and Session Management
 
 ### Completed
-- Enhanced `ralph status` command with rich session information
+- Enhanced `ghcralph status` command with rich session information
 - Shows current session status, task, branch, iteration progress, tokens
 - Added progress bar visualization with color coding
 - Shows modified files with status indicators (+/~/-)
-- Added --history flag to show past Ralph sessions from git log
+- Added --history flag to show past GitHub Copilot Ralph sessions from git log
 - Added contextual tips based on session status
 - Color-coded output for quick scanning
 - Status icons for active/complete/failed/paused states
 
 ### Technical Decisions
 - Parse progress.md to extract session metadata
-- Use git log --grep for finding Ralph commits
+- Use git log --grep for finding ghcralph commits
 - Group sessions in history by detecting iteration number gaps
 - Regex to strip emoji safely without eslint character class issues
+
+## 2026-01-24 - Feedback Adjustments: Rebranding and Attribution
+
+### Changes Made
+- Added proper attribution to Geoffrey Huntley for the Ralph Wiggum loop concept
+- Credited Raphael Pothin as the creator of this opinionated interpretation
+- Renamed CLI command from `ralph` to `ghcralph` (GitHub Copilot Ralph)
+- Changed package name from `ralph-cli` to `ghcralph-cli`
+- Updated branding from "Ralph CLI" to "GitHub Copilot Ralph"
+- Changed default model from `gpt-4` to `gpt-4.1` (0x multiplier for cost efficiency)
+- Updated branch prefix from `ralph/` to `ghcralph/`
+- Updated state directory from `.ralph/` to `.ghcralph/`
+- Added Prerequisites section with GitHub Copilot CLI requirement
+- Updated all documentation, help text, and examples
+
+### Technical Decisions
+- `ghcralph` chosen to emphasize GitHub Copilot integration
+- `gpt-4.1` as default model due to 0x multiplier (cost-free tier)
+- GitHub Copilot CLI is a pre-requisite for the underlying SDK

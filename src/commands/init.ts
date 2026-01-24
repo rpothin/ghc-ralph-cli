@@ -1,7 +1,7 @@
 /**
  * Init Command
  *
- * Initialize Ralph CLI in a repository
+ * Initialize GitHub Copilot Ralph in a repository
  */
 
 import { execSync } from 'node:child_process';
@@ -48,30 +48,30 @@ export interface InitOptions {
 export function registerInitCommand(program: Command): void {
   program
     .command('init')
-    .description('Initialize Ralph in the current repository')
+    .description('Initialize GitHub Copilot Ralph in the current repository')
     .option('--force', 'Overwrite existing configuration')
     .option('--local', 'Use local Markdown files as plan source')
     .option('--github', 'Use GitHub Issues as plan source')
     .option('--plan-source <source>', 'Plan source (github or local)')
     .addHelpText('after', `
 Examples:
-  $ ralph init                    # Interactive initialization
-  $ ralph init --local            # Use local Markdown plan files
-  $ ralph init --github           # Use GitHub Issues as plan source
-  $ ralph init --force            # Overwrite existing configuration
+  $ ghcralph init                    # Interactive initialization
+  $ ghcralph init --local            # Use local Markdown plan files
+  $ ghcralph init --github           # Use GitHub Issues as plan source
+  $ ghcralph init --force            # Overwrite existing configuration
 
 This command will:
-  1. Create .ralph/ directory in your project
+  1. Create .ghcralph/ directory in your project
   2. Generate config.json with default settings
-  3. Add .ralph/ to .gitignore (optional)
+  3. Add .ghcralph/ to .gitignore (optional)
 
 See also:
-  ralph run     Execute a coding loop
-  ralph config  View or modify configuration
+  ghcralph run     Execute a coding loop
+  ghcralph config  View or modify configuration
 `)
     .action(async (options: InitOptions) => {
       console.log('');
-      console.log(heading('🤖 Ralph CLI - Initialize'));
+      console.log(heading('🤖 GitHub Copilot Ralph - Initialize'));
       console.log('');
 
       // Check for git repository
@@ -89,7 +89,7 @@ See also:
       // Check for existing configuration
       const hasExisting = await configManager.hasLocalConfig();
       if (hasExisting && !options.force) {
-        warn('Ralph is already initialized in this repository.');
+        warn('GitHub Copilot Ralph is already initialized in this repository.');
         info(`Use ${code('--force')} to reinitialize.`);
         return;
       }
@@ -127,8 +127,8 @@ See also:
       console.log(`  ${code(stateDir)}`);
       console.log('');
 
-      success('Ralph CLI initialized successfully!');
+      success('GitHub Copilot Ralph initialized successfully!');
       console.log('');
-      info(`Run ${code('ralph run --task "Your task"')} to start.`);
+      info(`Run ${code('ghcralph run --task "Your task"')} to start.`);
     });
 }
