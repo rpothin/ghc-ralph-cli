@@ -16,13 +16,13 @@
 
 ### Suggested Repository Details
 
-| Attribute | Recommendation |
-|-----------|----------------|
-| **Name** | `ralph-cli` |
-| **Description** | "A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot" |
+| Attribute       | Recommendation                                                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**        | `ralph-cli`                                                                                                                                    |
+| **Description** | "A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot"                          |
 | **Topics/Tags** | `cli`, `copilot`, `agentic-coding`, `ralph-wiggum`, `automation`, `developer-tools`, `ai-coding`, `github-copilot`, `nodejs`, `cross-platform` |
-| **License** | MIT |
-| **Visibility** | Public |
+| **License**     | MIT                                                                                                                                            |
+| **Visibility**  | Public                                                                                                                                         |
 
 ### Alternative Names Considered
 - `ralph-loop` - More descriptive of the core function
@@ -857,15 +857,15 @@ All ──→ #18 Cookbook
 
 ## 🛠️ Technical Decisions Summary
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Language** | TypeScript | Best Copilot SDK support, AI agents excel at it, npm distribution |
-| **CLI Framework** | Commander.js | Mature, well-documented, TypeScript support |
-| **Package Manager** | npm | Cross-platform, matches GitHub Copilot CLI |
-| **Node Version** | 18+ LTS | Modern features, long-term support |
-| **Config Format** | JSON | Simple, widely supported, good tooling |
-| **Progress Format** | Markdown | Human-friendly, AI-friendly, version-controllable |
-| **Git Integration** | Simple-git | Reliable Node.js git wrapper |
+| Decision            | Choice       | Rationale                                                         |
+| ------------------- | ------------ | ----------------------------------------------------------------- |
+| **Language**        | TypeScript   | Best Copilot SDK support, AI agents excel at it, npm distribution |
+| **CLI Framework**   | Commander.js | Mature, well-documented, TypeScript support                       |
+| **Package Manager** | npm          | Cross-platform, matches GitHub Copilot CLI                        |
+| **Node Version**    | 18+ LTS      | Modern features, long-term support                                |
+| **Config Format**   | JSON         | Simple, widely supported, good tooling                            |
+| **Progress Format** | Markdown     | Human-friendly, AI-friendly, version-controllable                 |
+| **Git Integration** | Simple-git   | Reliable Node.js git wrapper                                      |
 
 ---
 
