@@ -183,12 +183,12 @@ Implement the integration layer with the GitHub Copilot SDK to power the agentic
 Build the heart of Ralph CLI - the autonomous loop that repeatedly invokes the AI agent until the task is complete.
 
 **Acceptance Criteria**:
-- [ ] Create `LoopEngine` class with:
+- [x] Create `LoopEngine` class with:
   - `start(task: Task)`: Begin loop execution
   - `pause()`: Pause current loop
   - `resume()`: Resume paused loop
   - `stop()`: Gracefully stop loop
-- [ ] Implement the core loop pattern:
+- [x] Implement the core loop pattern:
   ```
   while (task not complete AND iterations < max AND tokens < limit):
     1. Build context from current state
@@ -197,9 +197,9 @@ Build the heart of Ralph CLI - the autonomous loop that repeatedly invokes the A
     4. Update progress
     5. Commit checkpoint
   ```
-- [ ] Add event emitters for loop lifecycle (start, iteration, complete, error)
-- [ ] Implement iteration tracking with timestamps
-- [ ] Create structured logging for each iteration
+- [x] Add event emitters for loop lifecycle (start, iteration, complete, error)
+- [x] Implement iteration tracking with timestamps
+- [x] Create structured logging for each iteration
 
 **Technical Notes**:
 - Use async iterators for loop control

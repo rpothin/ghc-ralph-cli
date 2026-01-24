@@ -60,3 +60,22 @@
 - CopilotError class distinguishes retryable vs non-retryable errors
 - Default config: gpt-4 model, 4096 max tokens, 3 retries
 - Agent has placeholder API call - actual implementation depends on Copilot API availability
+
+## 2026-01-24 - Issue #4: Core Loop Engine Implementation
+
+### Completed
+- Created LoopEngine class (src/core/loop-engine.ts) with:
+  - `start(task)`: Begin loop execution
+  - `pause()`: Request pause at next iteration boundary
+  - `resume()`: Resume paused loop
+  - `stop()`: Gracefully stop loop
+- Implemented core loop pattern with context building, agent execution, progress tracking
+- Created LoopEventEmitter (src/core/loop-events.ts) with typed events:
+  - start, iterationStart, iterationEnd, pause, resume, complete, error, stop, tokenUsage
+- Added IterationRecord and FullLoopState types for tracking
+
+### Technical Decisions
+- Loop checks for pause/stop between iterations (cooperative cancellation)
+- Iteration delay (500ms default) between iterations to prevent overwhelming
+- Event-driven architecture allows subscribers to monitor loop progress
+- Each iteration builds a prompt with task context and previous progress
