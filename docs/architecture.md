@@ -454,6 +454,7 @@ graph LR
 | Issue | Impact | Root Cause | Status |
 |-------|--------|------------|--------|
 | **No file operations** | AI describes changes but nothing happens | Response not parsed for file operations | ✅ FIXED |
+| **No objective exit criteria** | AI declares done but tests may fail | No external verification | ✅ FIXED |
 | **No structured output** | AI returns free-form text | Prompt doesn't specify output format | 🔄 In Progress |
 | **Task verification loop** | AI keeps verifying same task | No clear completion signal expected | 🔄 In Progress |
 | **Model sensitivity** | Weaker models perform poorly | Prompt relies on implicit understanding | 🔄 In Progress |
@@ -552,6 +553,47 @@ The action executor component has been implemented in `src/core/action-executor.
 - File safeguard integration (protects baseline files from deletion)
 - Command timeout (30 seconds default)
 - Dry run mode for testing
+
+### 2.2 Verification Hooks ✅ IMPLEMENTED
+
+The verification hooks component has been implemented in `src/core/verification-hooks.ts`:
+
+**Purpose**: Provide objective exit criteria (tests pass, build succeeds) rather than trusting the AI to say "I'm done".
+
+```mermaid
+graph LR
+    Loop[Loop Engine] --> VM[Verification Manager]
+    VM --> Detect[Auto-Detect Hooks]
+    Detect --> NPM[package.json scripts]
+    Detect --> Make[Makefile targets]
+    Detect --> Pytest[pytest config]
+    
+    VM --> Run[Run All Hooks]
+    Run --> Test[Test Hook]
+    Run --> Build[Build Hook]
+    Run --> Lint[Lint Hook]
+    
+    Test --> Result{All Required Pass?}
+    Build --> Result
+    Result -->|Yes| Complete[Task Complete]
+    Result -->|No| Continue[Continue Loop]
+```
+
+**Features:**
+- Auto-detects verification hooks from project config (npm scripts, Makefile, pytest)
+- Runs test, build, lint commands after each iteration
+- Only required hooks block completion (lint is optional by default)
+- Timeout protection for long-running commands
+- Detailed result summaries with pass/fail status
+
+**Example Detection:**
+| File | Detected Hooks |
+|------|---------------|
+| `package.json` with `scripts.test` | `npm test` (required) |
+| `package.json` with `scripts.build` | `npm run build` (required) |
+| `package.json` with `scripts.lint` | `npm run lint` (optional) |
+| `Makefile` with `test:` target | `make test` (required) |
+| `pytest.ini` or `pyproject.toml` | `pytest` (required) |
 
 ### 3. Enhanced Prompt Template
 

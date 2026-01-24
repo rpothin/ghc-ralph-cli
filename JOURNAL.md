@@ -678,8 +678,38 @@ After reviewing the original Ralph Wiggum loop methodology (ghuntley.com/ralph a
 
 **Tests Added**: 37 new tests (19 parser + 18 executor)
 
+### Issue #2: No Objective Exit Criteria - FIXED
+
+**Problem**: The CLI trusted the AI to say "I'm done" without external verification.
+
+**Solution**: Implemented Verification Hooks (`src/core/verification-hooks.ts`)
+
+#### VerificationManager
+- Auto-detects verification hooks from project configuration
+- Runs tests/build/lint after each iteration
+- Only exits when all required hooks pass
+
+**Auto-Detection Sources:**
+| Source | Detected Hooks |
+|--------|---------------|
+| package.json scripts.test | `npm test` (required) |
+| package.json scripts.build | `npm run build` (required) |
+| package.json scripts.lint | `npm run lint` (optional) |
+| Makefile test: target | `make test` (required) |
+| Makefile build: target | `make build` (required) |
+| pytest.ini / pyproject.toml | `pytest` (required) |
+
+**Features:**
+- Configurable hook priority (required vs optional)
+- Command timeout protection (default 2 minutes)
+- Stop-on-first-failure option
+- Detailed result summaries
+
+**Tests Added**: 20 new tests for verification hooks
+
+**Total Tests**: 224 passing
+
 ### Remaining Realignment Issues
-- Issue #2: No objective exit criteria (stop hook for tests/build)
 - Issue #3: No feedback loop (test output → next iteration)
 - Issue #4: Context accumulation (should reset per iteration)
 - Issue #5: Complex prompt template (remove meta-info)

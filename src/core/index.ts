@@ -68,3 +68,15 @@ export type {
 
 export { ActionExecutor, createActionExecutor } from './action-executor.js';
 export type { ActionResult, ExecutionResult, ActionExecutorConfig } from './action-executor.js';
+
+export {
+  VerificationManager,
+  createVerificationManager,
+  detectDefaultHooks,
+} from './verification-hooks.js';
+export type {
+  VerificationResult,
+  VerificationHook,
+  VerificationHookType,
+  VerificationConfig,
+} from './verification-hooks.js';
