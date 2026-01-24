@@ -10,6 +10,11 @@ import type { FullLoopState, IterationRecord } from './loop-state.js';
 import type { TokenUsage } from '../integrations/index.js';
 
 /**
+ * Warning type for threshold warnings
+ */
+export type WarningType = 'iteration-threshold' | 'token-threshold' | 'duration-threshold' | 'circuit-breaker';
+
+/**
  * Loop lifecycle events
  */
 export interface LoopEvents {
@@ -31,6 +36,8 @@ export interface LoopEvents {
   stop: [state: FullLoopState];
   /** Emitted when tokens are consumed */
   tokenUsage: [usage: TokenUsage, totalUsage: TokenUsage];
+  /** Emitted when a warning threshold is reached */
+  warning: [type: WarningType, message: string, state: FullLoopState];
 }
 
 /**

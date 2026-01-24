@@ -25,8 +25,16 @@ export interface LoopEngineConfig {
   maxIterations: number;
   /** Maximum token budget */
   maxTokens: number;
+  /** Maximum duration in minutes (0 = no limit) */
+  maxDurationMinutes: number;
   /** Delay between iterations in ms */
   iterationDelayMs: number;
+  /** Warning threshold percentage (default: 0.8 = 80%) */
+  warningThreshold: number;
+  /** Maximum consecutive failures before pausing */
+  maxConsecutiveFailures: number;
+  /** Whether unlimited iterations are allowed */
+  allowUnlimited: boolean;
   /** Context builder configuration */
   contextConfig?: Partial<ContextBuilderConfig>;
 }
@@ -37,7 +45,11 @@ export interface LoopEngineConfig {
 const DEFAULT_CONFIG: LoopEngineConfig = {
   maxIterations: 10,
   maxTokens: 100000,
+  maxDurationMinutes: 0,
   iterationDelayMs: 500,
+  warningThreshold: 0.8,
+  maxConsecutiveFailures: 3,
+  allowUnlimited: false,
 };
 
 /**
@@ -47,6 +59,8 @@ export type LoopCompletionReason =
   | 'task-complete'
   | 'max-iterations'
   | 'max-tokens'
+  | 'max-duration'
+  | 'circuit-breaker'
   | 'stopped'
   | 'paused'
   | 'error';
@@ -62,6 +76,9 @@ export class LoopEngine {
   private state: FullLoopState | null = null;
   private pauseRequested: boolean = false;
   private stopRequested: boolean = false;
+  private consecutiveFailures: number = 0;
+  private iterationWarningShown: boolean = false;
+  private tokenWarningShown: boolean = false;
 
   constructor(agent: CopilotAgent, config: Partial<LoopEngineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -227,9 +244,34 @@ export class LoopEngine {
       return false;
     }
 
+    // Check for unlimited iterations (>50 requires explicit flag)
+    if (this.config.maxIterations > 50 && !this.config.allowUnlimited) {
+      debug('More than 50 iterations requires --unlimited flag');
+      return false;
+    }
+
     // Check token limit
     if (this.state.tokensUsed >= this.config.maxTokens) {
       debug(`Max tokens reached (${this.config.maxTokens})`);
+      return false;
+    }
+
+    // Check duration limit
+    if (this.config.maxDurationMinutes > 0) {
+      const elapsed = Date.now() - this.state.startedAt.getTime();
+      const maxDurationMs = this.config.maxDurationMinutes * 60 * 1000;
+      if (elapsed >= maxDurationMs) {
+        debug(`Max duration reached (${this.config.maxDurationMinutes} minutes)`);
+        return false;
+      }
+    }
+
+    // Check circuit breaker
+    if (this.consecutiveFailures >= this.config.maxConsecutiveFailures) {
+      debug(`Circuit breaker triggered after ${this.consecutiveFailures} consecutive failures`);
+      this.events.emit('warning', 'circuit-breaker', 
+        `${this.consecutiveFailures} consecutive iterations produced no changes. Pausing for review.`, 
+        this.state);
       return false;
     }
 
@@ -239,7 +281,50 @@ export class LoopEngine {
       return false;
     }
 
+    // Emit threshold warnings
+    this.checkThresholds();
+
     return true;
+  }
+
+  /**
+   * Check thresholds and emit warnings
+   */
+  private checkThresholds(): void {
+    if (!this.state) return;
+
+    const { iteration, tokensUsed, startedAt } = this.state;
+    const { maxIterations, maxTokens, maxDurationMinutes, warningThreshold } = this.config;
+
+    // Iteration threshold warning
+    const iterationRatio = iteration / maxIterations;
+    if (iterationRatio >= warningThreshold && !this.iterationWarningShown) {
+      this.iterationWarningShown = true;
+      this.events.emit('warning', 'iteration-threshold',
+        `${iteration}/${maxIterations} iterations used (${Math.round(iterationRatio * 100)}%)`,
+        this.state);
+    }
+
+    // Token threshold warning
+    const tokenRatio = tokensUsed / maxTokens;
+    if (tokenRatio >= warningThreshold && !this.tokenWarningShown) {
+      this.tokenWarningShown = true;
+      this.events.emit('warning', 'token-threshold',
+        `Token usage at ${Math.round(tokenRatio * 100)}% of budget (${tokensUsed.toLocaleString()}/${maxTokens.toLocaleString()})`,
+        this.state);
+    }
+
+    // Duration threshold warning
+    if (maxDurationMinutes > 0) {
+      const elapsed = Date.now() - startedAt.getTime();
+      const maxDurationMs = maxDurationMinutes * 60 * 1000;
+      const durationRatio = elapsed / maxDurationMs;
+      if (durationRatio >= warningThreshold) {
+        this.events.emit('warning', 'duration-threshold',
+          `Duration at ${Math.round(durationRatio * 100)}% of limit`,
+          this.state);
+      }
+    }
   }
 
   /**
@@ -275,6 +360,9 @@ export class LoopEngine {
       const result = await this.agent.execute(builtContext.prompt);
 
       if (result.success && result.tokenUsage) {
+        // Reset consecutive failures counter on success
+        this.consecutiveFailures = 0;
+
         // Update token usage
         this.state.tokensUsed += result.tokenUsage.totalTokens;
 
@@ -292,6 +380,9 @@ export class LoopEngine {
         this.state.iterations.push(completedRecord);
         this.events.emit('iterationEnd', completedRecord, this.state);
       } else {
+        // Track consecutive failures
+        this.consecutiveFailures++;
+
         // Failed iteration
         const completedRecord = completeIteration(
           record,
@@ -305,6 +396,9 @@ export class LoopEngine {
         this.events.emit('iterationEnd', completedRecord, this.state);
       }
     } catch (err) {
+      // Track consecutive failures
+      this.consecutiveFailures++;
+
       const error = err instanceof Error ? err : new Error(String(err));
       const completedRecord = completeIteration(record, false, 0, undefined, error.message);
 

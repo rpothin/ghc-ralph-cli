@@ -31,6 +31,8 @@ export interface RunOptions {
   branch?: string;
   force?: boolean;
   noCommit?: boolean;
+  unlimited?: boolean;
+  timeout?: string;
   maxIterations: string;
   maxTokens?: string;
   model?: string;
@@ -125,6 +127,8 @@ export function registerRunCommand(program: Command): void {
     .option('-b, --branch <name>', 'Use or create a specific branch name')
     .option('--force', 'Skip branch confirmation prompts')
     .option('--no-commit', 'Disable automatic checkpoint commits')
+    .option('--unlimited', 'Allow more than 50 iterations')
+    .option('--timeout <minutes>', 'Maximum duration in minutes')
     .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
     .option('--max-tokens <number>', 'Maximum token budget', '100000')
     .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
@@ -137,6 +141,13 @@ export function registerRunCommand(program: Command): void {
 
       const maxIterations = parseInt(options.maxIterations, 10);
       const maxTokens = options.maxTokens ? parseInt(options.maxTokens, 10) : 100000;
+      const maxDurationMinutes = options.timeout ? parseInt(options.timeout, 10) : 0;
+
+      // Validate iteration limit
+      if (maxIterations > 50 && !options.unlimited) {
+        error('More than 50 iterations requires --unlimited flag');
+        process.exit(1);
+      }
 
       // Create task - either from options or from plan source
       let task: Task;
@@ -305,6 +316,8 @@ export function registerRunCommand(program: Command): void {
       const engine = new LoopEngine(agent, {
         maxIterations,
         maxTokens,
+        maxDurationMinutes,
+        allowUnlimited: options.unlimited === true,
         contextConfig,
       });
 
@@ -362,6 +375,10 @@ export function registerRunCommand(program: Command): void {
 
       events.on('error', (err) => {
         error(`Loop error: ${err.message}`);
+      });
+
+      events.on('warning', (type, message) => {
+        warn(`Warning: ${message}`);
       });
 
       // Run the loop

@@ -533,17 +533,17 @@ Proceed? [y/N] y
 Prevent runaway loops and excessive resource consumption.
 
 **Acceptance Criteria**:
-- [ ] Implement configurable limits:
+- [x] Implement configurable limits:
   - `maxIterations`: Hard stop after N iterations (default: 10)
   - `maxTokens`: Stop if token budget exceeded
   - `maxDuration`: Stop after N minutes (optional)
-- [ ] Display warnings at thresholds:
+- [x] Display warnings at thresholds:
   - 80% of iteration limit
   - 80% of token budget
-- [ ] Require explicit `--unlimited` flag to exceed 50 iterations
-- [ ] Add "circuit breaker" for repeated failures:
+- [x] Require explicit `--unlimited` flag to exceed 50 iterations
+- [x] Add "circuit breaker" for repeated failures:
   - If 3 consecutive iterations produce no changes, pause and prompt
-- [ ] Log all limit-related events
+- [x] Log all limit-related events
 
 **Example Output**:
 ```

@@ -249,3 +249,21 @@
 - Finds pre-session commit by looking for parent of first Ralph commit
 - Lists up to 20 recent checkpoints with --list
 - Shows up to 5 affected files in preview, with count of remaining
+
+## 2026-01-24 - Issue #14: Loop Limits and Guardrails
+
+### Completed
+- Enhanced LoopEngine with comprehensive guardrails
+- Added maxDurationMinutes option with --timeout flag
+- Added --unlimited flag for > 50 iterations
+- Warnings emitted at 80% threshold (configurable)
+- Circuit breaker pauses after 3 consecutive failures
+- Added warning event type to LoopEvents
+- Tracks consecutive failures for circuit breaker logic
+
+### Technical Decisions
+- Warning threshold configurable (default 0.8 = 80%)
+- Max consecutive failures before pause: 3 (configurable)
+- Duration check uses Date.now() - startedAt
+- Warnings only emitted once per type per session
+- Circuit breaker triggers 'warning' event with 'circuit-breaker' type
