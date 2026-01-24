@@ -29,6 +29,9 @@ case "$op" in
     +)
         echo $((num1 + num2))
         ;;
+    -)
+        echo $((num1 - num2))
+        ;;
     *)
         echo "Error: Invalid operation '$op'" >&2
         exit 1
