@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FeedbackBuilder, createFeedbackBuilder } from './feedback-builder.js';
-import type { ExecutionResult, ActionResult } from './action-executor.js';
+import type { ExecutionResult } from './action-executor.js';
 import type { VerificationResult } from './verification-hooks.js';
 
 // Mock child_process
 vi.mock('node:child_process', () => ({
-  exec: vi.fn((cmd: string, _options: unknown, callback?: Function) => {
+  exec: vi.fn(
+    (
+      cmd: string,
+      _options: unknown,
+      callback?: (error: Error | null, result: { stdout: string }) => void
+    ) => {
     // If callback provided, use it
     if (typeof callback === 'function') {
       if (cmd.includes('--stat')) {
@@ -15,8 +20,9 @@ vi.mock('node:child_process', () => ({
       }
     }
     // Return a mock ChildProcess for promise-based usage
-    return { stdout: '', stderr: '' };
-  }),
+      return { stdout: '', stderr: '' };
+    }
+  ),
 }));
 
 describe('FeedbackBuilder', () => {

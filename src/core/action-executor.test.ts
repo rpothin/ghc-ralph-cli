@@ -6,7 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { ActionExecutor, createActionExecutor } from './action-executor.js';
+import { createActionExecutor } from './action-executor.js';
+import type { ActionExecutor } from './action-executor.js';
 import type {
   CreateAction,
   EditAction,

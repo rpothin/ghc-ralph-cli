@@ -987,3 +987,19 @@ The Ralph realignment is working! The CLI now:
 - Validates work with objective criteria (tests)
 - Exits early when the AI correctly says "complete"
 - Uses significantly fewer iterations and tokens
+
+## 2026-01-24 - MVP Refinement Round
+
+### Completed
+- Added CONTRIBUTING.md with development setup, testing, code quality, PR process, and Contributor Covenant v3.0 reference.
+- Added GitHub Actions workflows for CI (matrix build/test + publish dry run) and npm release publishing.
+- Restricted npm publish contents with package.json files/publishConfig plus .npmignore.
+- Added prepublishOnly script to run lint, typecheck, tests, and build.
+- Added missing core tests for LoopEngine and CopilotAgent.
+
+### Validation
+- `npm run lint` (fails: existing non-null assertions in run/rollback commands).
+- `npm test`.
+
+### Notes
+- Lint failures are pre-existing and were not addressed per request; CI will currently fail until those assertions are fixed.

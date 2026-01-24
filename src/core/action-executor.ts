@@ -9,7 +9,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { debug, info, warn, error as logError } from '../utils/index.js';
+import { debug, info, warn } from '../utils/index.js';
 import type {
   Action,
   CreateAction,
