@@ -845,3 +845,62 @@ All 6 issues from REALIGNMENT_PLAN.md have been addressed:
 Total new components: 5
 Total new tests: 100+
 Total tests now: 267
+
+---
+
+## 2026-01-24 - Integration Test After Realignment
+
+### Test Scenario
+Ran the calculator integration test after implementing all 6 realignment fixes.
+
+### Test Steps
+1. Cleaned test directory
+2. Initialized ghcralph: `npx ghcralph init --local`
+3. Configured local plan: `npx ghcralph config set localPlanFile test/integration/calculator/PLAN.md`
+4. Ran CLI: `npx ghcralph run --plan test/integration/calculator/PLAN.md`
+5. Ran tests: `npm run test -- test/integration/calculator/calculator.test.ts`
+
+### Results
+- **All 15 tests passed** ✅
+- The `calculator.sh` file was present and fully implemented
+
+### Important Finding: Integration Gap
+
+The CLI successfully communicated with Copilot API and received responses, but there's a critical gap:
+
+**The new realignment components are NOT yet integrated into the LoopEngine:**
+- `ResponseParser` - Created but not called
+- `ActionExecutor` - Created but not called  
+- `VerificationManager` - Created but not called
+- `FeedbackBuilder` - Created but not called
+
+**Evidence from CLI output:**
+```
+ℹ Iteration 3: ✓ (1,118 tokens)
+  [ACTION:COMPLETE]
+ℹ Iteration 4: ✓ (1,157 tokens)
+  [ACTION:COMPLETE]
+... (repeated until iteration 10)
+```
+
+The AI correctly used the `[ACTION:COMPLETE]` format, but the loop didn't stop because:
+1. The response isn't being parsed by `ResponseParser`
+2. The action isn't being executed by `ActionExecutor`
+3. The loop continues based only on iteration count, not action completion
+
+### Next Steps Required
+
+To make the CLI fully functional with the Ralph pattern, the `LoopEngine` needs to be updated to:
+1. Parse AI responses with `ResponseParser`
+2. Execute actions with `ActionExecutor`
+3. Run verification hooks with `VerificationManager`
+4. Build feedback for next iteration with `FeedbackBuilder`
+5. Stop the loop when `[ACTION:COMPLETE]` is received AND verification passes
+
+### Why Tests Passed
+
+The tests passed because `calculator.sh` already existed from a previous manual test run. The current CLI iteration didn't create or modify it - it just ran 10 iterations and marked the plan task complete.
+
+### Configuration Fix
+
+Updated `vitest.config.ts` to include `test/**/*.test.ts` in addition to `src/**/*.test.ts` so integration tests can be run.
