@@ -78,6 +78,11 @@ export class FileSafeguardManager {
     };
   }
 
+  private getNormalizedRelativePath(filePath: string): string {
+    const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(this.config.cwd, filePath);
+    return path.relative(this.config.cwd, absolutePath).replace(/\\/g, '/');
+  }
+
   /**
    * Initialize by creating baseline snapshot
    */
@@ -154,7 +159,7 @@ export class FileSafeguardManager {
    * Check if a file existed before the session
    */
   isBaselineFile(filePath: string): boolean {
-    const relativePath = path.relative(this.config.cwd, filePath);
+    const relativePath = this.getNormalizedRelativePath(filePath);
     return this.operations.baselineFiles.has(relativePath);
   }
 
@@ -162,7 +167,7 @@ export class FileSafeguardManager {
    * Check if a file was created during this session
    */
   isCreatedFile(filePath: string): boolean {
-    const relativePath = path.relative(this.config.cwd, filePath);
+    const relativePath = this.getNormalizedRelativePath(filePath);
     return this.operations.createdFiles.has(relativePath);
   }
 
@@ -170,7 +175,7 @@ export class FileSafeguardManager {
    * Track a file creation
    */
   trackFileCreation(filePath: string): void {
-    const relativePath = path.relative(this.config.cwd, filePath);
+    const relativePath = this.getNormalizedRelativePath(filePath);
     if (!this.operations.baselineFiles.has(relativePath)) {
       this.operations.createdFiles.add(relativePath);
       debug(`Tracked file creation: ${relativePath}`);
@@ -181,7 +186,7 @@ export class FileSafeguardManager {
    * Track a file modification
    */
   trackFileModification(filePath: string): void {
-    const relativePath = path.relative(this.config.cwd, filePath);
+    const relativePath = this.getNormalizedRelativePath(filePath);
     this.operations.modifiedFiles.add(relativePath);
   }
 
@@ -194,7 +199,7 @@ export class FileSafeguardManager {
       return true;
     }
 
-    const relativePath = path.relative(this.config.cwd, filePath);
+    const relativePath = this.getNormalizedRelativePath(filePath);
 
     // Allow deletion of files created during session
     if (this.operations.createdFiles.has(relativePath)) {

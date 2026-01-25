@@ -74,9 +74,15 @@ describe('Action Executor', () => {
 
       await executor.executeAction(action);
 
-      const stats = await fs.stat(path.join(tempDir, 'script.sh'));
-      // Check executable bit
-      expect(stats.mode & 0o111).toBeTruthy();
+      const scriptPath = path.join(tempDir, 'script.sh');
+      const content = await fs.readFile(scriptPath, 'utf-8');
+      expect(content).toContain('#!/bin/bash');
+
+      if (process.platform !== 'win32') {
+        const stats = await fs.stat(scriptPath);
+        // Check executable bit
+        expect(stats.mode & 0o111).toBeTruthy();
+      }
     });
 
     it('should reject paths outside working directory', async () => {
@@ -231,7 +237,7 @@ describe('Action Executor', () => {
     it('should run commands in the correct working directory', async () => {
       const action: ExecuteAction = {
         type: 'EXECUTE',
-        command: 'pwd',
+        command: 'node -e "console.log(process.cwd())"',
         raw: '',
       };
 

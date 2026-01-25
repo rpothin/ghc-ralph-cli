@@ -22,6 +22,12 @@ describe('Shell Utilities', () => {
       process.env['SHELL'] = '/bin/bash';
       
       const result = detectShell();
+
+      if (process.platform === 'win32') {
+        expect(result.type).toBe('cmd');
+        expect(result.isWindows).toBe(true);
+        return;
+      }
       
       expect(result.type).toBe('bash');
       expect(result.path).toBe('/bin/bash');
@@ -33,6 +39,12 @@ describe('Shell Utilities', () => {
       process.env['SHELL'] = '/usr/local/bin/zsh';
       
       const result = detectShell();
+
+      if (process.platform === 'win32') {
+        expect(result.type).toBe('cmd');
+        expect(result.isWindows).toBe(true);
+        return;
+      }
       
       expect(result.type).toBe('zsh');
       expect(result.path).toBe('/usr/local/bin/zsh');
@@ -44,6 +56,12 @@ describe('Shell Utilities', () => {
       process.env['SHELL'] = '/usr/bin/fish';
       
       const result = detectShell();
+
+      if (process.platform === 'win32') {
+        expect(result.type).toBe('cmd');
+        expect(result.isWindows).toBe(true);
+        return;
+      }
       
       expect(result.type).toBe('fish');
       expect(result.path).toBe('/usr/bin/fish');
@@ -55,6 +73,12 @@ describe('Shell Utilities', () => {
       process.env['SHELL'] = '/usr/bin/custom-shell';
       
       const result = detectShell();
+
+      if (process.platform === 'win32') {
+        expect(result.type).toBe('cmd');
+        expect(result.isWindows).toBe(true);
+        return;
+      }
       
       expect(result.type).toBe('unknown');
       expect(result.path).toBe('/usr/bin/custom-shell');
@@ -65,6 +89,12 @@ describe('Shell Utilities', () => {
       delete process.env['SHELL'];
       
       const result = detectShell();
+
+      if (process.platform === 'win32') {
+        expect(result.type).toBe('cmd');
+        expect(result.isWindows).toBe(true);
+        return;
+      }
       
       expect(result.type).toBe('unknown');
       expect(result.path).toBeUndefined();

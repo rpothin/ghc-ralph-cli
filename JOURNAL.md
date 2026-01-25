@@ -1032,3 +1032,25 @@ The Ralph realignment is working! The CLI now:
 - `npm test`
 - `npm run build`
 - `npm publish --dry-run`
+
+## 2026-01-25 - Fix Windows CI test portability
+
+### Problem
+- CI on **windows-latest / Node 18** was failing due to OS-specific assumptions in unit tests:
+  - `pwd` not available (or executed under a different shell) causing working-directory assertions to fail.
+  - POSIX execute-bit assertions (`chmod` / `mode & 0o111`) failing on Windows.
+  - Absolute-path tests hardcoding POSIX-style `/absolute/path`.
+  - File safeguard details tracking diverging due to Windows path separators (`\`).
+
+### Fix
+- Made FileSafeguard path tracking consistent by normalizing tracked relative paths to forward slashes (`/`).
+- Updated ActionExecutor tests to be cross-platform:
+  - Use `node -e "console.log(process.cwd())"` instead of `pwd`.
+  - Only assert POSIX execute-bit behavior when not running on Windows.
+- Updated path utilities tests to use a platform-native absolute path.
+- Updated shell detection tests to be platform-aware (Windows expects `cmd`).
+
+### Validation
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
