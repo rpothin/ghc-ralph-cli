@@ -1109,6 +1109,27 @@ The Ralph realignment is working! The CLI now:
 
 ## 2026-01-25 - ghcralph run: simplify plan vs file
 
+## 2026-01-25 - ghcralph run: config is the source of truth
+
+### Problem
+- `ghcralph run` exposed CLI flags (`--max-iterations`, `--max-tokens`, `--model`, `--no-commit`, and GitHub repo/filters) that overlap with config keys, making it unclear which values are authoritative.
+
+### Root cause
+- `src/commands/run.ts` hardcoded defaults and accepted per-run overrides instead of consistently loading `.ghcralph/config.json` / `GHCRALPH_*` and using those values.
+
+### Fix
+- Updated `ghcralph run` to load configuration at startup and use it for:
+  - `maxIterations`, `maxTokens`, `defaultModel`, `autoCommit`, `branchPrefix`
+  - GitHub plan source repo + default filters (`githubRepo`, `githubLabel`, `githubMilestone`, `githubAssignee`)
+- Removed config-backed overrides from the `run` command options and help output.
+- Updated README and cookbook examples to show configuring these values via `.ghcralph/config.json` instead of CLI flags.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual check: `node bin/ghcralph.js run --help` no longer lists config-backed override flags
+
 ### Problem
 - The `ghcralph run` command exposed both `--file` (single task file) and `--plan` (Markdown plan file), which is confusing since both point at a file path.
 

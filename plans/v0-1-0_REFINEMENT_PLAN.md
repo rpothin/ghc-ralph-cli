@@ -174,7 +174,7 @@ See also:
 
 When using GitHub Issues as plan source, it could be useful to have complementary configuration entries in the `.ghcralph` configuration file to define default values for the owner/repo, label, milestone and assignee filters.
 
-### Finding 4: Run parameters should not offer overwriting configuration file values
+### Finding 4: Run parameters should not offer overwriting configuration file values ✅ (Addressed)
 
 ```
 @rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph run --help

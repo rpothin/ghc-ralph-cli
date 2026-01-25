@@ -113,7 +113,8 @@ ghcralph run --file TODO.md
 ### Run tasks from GitHub Issues
 ```bash
 ghcralph init --github
-ghcralph run --github owner/repo --label "ready"
+# Configure githubRepo (and optional filters) via .ghcralph/config.json
+ghcralph run --github
 ```
 
 ## Usage
@@ -146,15 +147,15 @@ ghcralph run --file tasks/add-validation.md
 # Tasks from a Markdown plan file
 ghcralph run --file TODO.md
 
-# Tasks from GitHub Issues
-ghcralph run --github owner/repo --label "ready"
+# Tasks from GitHub Issues (configured via .ghcralph/config.json)
+ghcralph run --github
 ```
 
 ### Advanced Run Options
 
 ```bash
-# Control iterations and tokens
-ghcralph run --task "Refactor auth" --max-iterations 20 --max-tokens 50000
+# Control iterations, tokens, and model via configuration
+# (set maxIterations / maxTokens / defaultModel in .ghcralph/config.json)
 
 # Specify context files
 ghcralph run --task "Fix tests" --context "src/**/*.test.ts"
@@ -298,7 +299,7 @@ gh auth login
 ```
 
 ### "Maximum iterations reached"
-Increase the limit: `--max-iterations 20`  
+Increase the limit: set `maxIterations` in `.ghcralph/config.json` (or `GHCRALPH_MAX_ITERATIONS`).  
 Or for very long tasks: `--unlimited`
 
 ### Progress seems stuck

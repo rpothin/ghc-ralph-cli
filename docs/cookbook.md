@@ -29,15 +29,15 @@ ghcralph run --task "Fix the login button not responding on mobile devices"
 ghcralph run --task "Fix issue #42: Form validation fails for email addresses" \
   --context "src/components/Form*.tsx" "src/utils/validation.ts"
 
-# From a GitHub issue
-ghcralph run --github owner/repo --label "bug"
+# From a GitHub issue (configured via .ghcralph/config.json)
+ghcralph run --github
 ```
 
 ### Tips for Success
 
 1. **Be specific about the bug**: Include error messages, reproduction steps
 2. **Provide context files**: Point Ralph to relevant code with `--context`
-3. **Start with low iterations**: `--max-iterations 5` for simple bugs
+3. **Start with low iterations**: set `maxIterations` in `.ghcralph/config.json` for simple bugs
 4. **Check after each iteration**: Use `ghcralph status` to monitor progress
 
 ### Common Pitfalls
@@ -62,8 +62,8 @@ ghcralph run --task "Add a dark mode toggle to the settings page"
 ghcralph run --file features/user-preferences.md
 
 # With more iterations for complex features
+# (set maxIterations in .ghcralph/config.json)
 ghcralph run --task "Implement user authentication with JWT" \
-  --max-iterations 15 \
   --context "src/auth/**/*.ts"
 ```
 
@@ -206,8 +206,9 @@ ghcralph run --task "Address code review feedback: add error handling to API cal
 ghcralph run --file pr-feedback.md
 
 # Quick style fixes
+# (set maxIterations in .ghcralph/config.json)
 ghcralph run --task "Fix linting issues and apply consistent formatting" \
-  --max-iterations 3
+  --context "src/**/*.{ts,tsx,js}"
 ```
 
 ### Example PR Feedback Plan
@@ -249,7 +250,8 @@ ghcralph rollback --iterations 1
 
 ```bash
 # Increase budget for next run
-ghcralph run --task "Continue previous work" --max-tokens 200000
+# (set maxTokens in .ghcralph/config.json)
+ghcralph run --task "Continue previous work"
 
 # Or break task into smaller pieces
 ```
@@ -261,7 +263,8 @@ ghcralph run --task "Continue previous work" --max-tokens 200000
 ghcralph run --task "Large refactor" --unlimited --timeout 60
 
 # Or increase iteration limit
-ghcralph run --task "..." --max-iterations 30
+# (set maxIterations in .ghcralph/config.json)
+ghcralph run --task "..."
 ```
 
 ### Changes not what I expected

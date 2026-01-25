@@ -8,7 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { Option, type Command } from 'commander';
-import { info, success, error, warn, debug, spinner, heading, code, dim, parsePositiveInt, parseNonNegativeInt } from '../utils/index.js';
+import { info, success, error, warn, debug, spinner, heading, code, dim, parseNonNegativeInt } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
 import {
   LoopEngine,
@@ -27,20 +27,13 @@ export interface RunOptions {
   task?: string;
   file?: string;
   plan?: string;
-  github?: string | boolean;
-  label?: string;
-  milestone?: string;
-  assignee?: string;
+  github?: boolean;
   context?: string[];
   branch?: string;
   force?: boolean;
-  noCommit?: boolean;
   unlimited?: boolean;
   timeout?: string;
   allowDelete?: boolean;
-  maxIterations: string;
-  maxTokens?: string;
-  model?: string;
   dryRun?: boolean;
 }
 
@@ -139,27 +132,24 @@ export function registerRunCommand(program: Command): void {
     .option('-t, --task <description>', 'Task to execute (inline)')
     .option('-f, --file <path>', 'Read task (or Markdown plan) from file')
     .addOption(new Option('-p, --plan <path>', 'Read tasks from a Markdown plan file (deprecated; use --file)').hideHelp())
-    .option('-g, --github [owner/repo]', 'Use GitHub Issues as plan source (defaults from config)')
-    .option('-l, --label <label>', 'Filter GitHub issues by label')
-    .option('--milestone <name>', 'Filter GitHub issues by milestone')
-    .option('--assignee <user>', 'Filter GitHub issues by assignee')
+    .option('-g, --github', 'Use GitHub Issues as plan source (configured via .ghcralph/config.json)')
     .option('-c, --context <glob...>', 'Include files matching glob patterns in context')
     .option('-b, --branch <name>', 'Use or create a specific branch name')
     .option('--force', 'Skip branch confirmation prompts')
-    .option('--no-commit', 'Disable automatic checkpoint commits')
     .option('--unlimited', 'Allow more than 50 iterations')
     .option('--timeout <minutes>', 'Maximum duration in minutes')
     .option('--allow-delete', 'Allow deletion of pre-existing files')
-    .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
-    .option('--max-tokens <number>', 'Maximum token budget', '100000')
-    .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
     .option('--dry-run', 'Show what would happen without executing')
     .addHelpText('after', `
+Config-backed settings (set via .ghcralph/config.json or GHCRALPH_* env vars):
+  - maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix
+  - githubRepo (+ optional filters: githubLabel, githubMilestone, githubAssignee)
+
 Examples:
   $ ghcralph run --task "Add input validation to the login form"
-  $ ghcralph run --file tasks/refactor.md --max-iterations 5
+  $ ghcralph run --file tasks/refactor.md
   $ ghcralph run --file TODO.md
-  $ ghcralph run --github owner/repo --label "ralph-ready"
+  $ ghcralph run --github
   $ ghcralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
   $ ghcralph run --task "Large refactor" --unlimited --timeout 60
 
@@ -179,31 +169,13 @@ See also:
         process.exit(1);
       }
 
-      // Validate numeric inputs
-      const maxIterationsResult = parsePositiveInt(options.maxIterations, 'max-iterations');
-      if (!maxIterationsResult.valid) {
-        error(maxIterationsResult.error ?? 'Invalid max-iterations value');
-        process.exit(1);
-      }
-      if (maxIterationsResult.value === undefined) {
-        error(maxIterationsResult.error ?? 'Invalid max-iterations value');
-        process.exit(1);
-      }
-      const maxIterations = maxIterationsResult.value;
+      const gitRoot = getGitRoot();
+      const configManager = new ConfigManager(gitRoot ?? undefined);
+      const config = await configManager.load();
 
-      let maxTokens = 100000;
-      if (options.maxTokens) {
-        const maxTokensResult = parsePositiveInt(options.maxTokens, 'max-tokens');
-        if (!maxTokensResult.valid) {
-          error(maxTokensResult.error ?? 'Invalid max-tokens value');
-          process.exit(1);
-        }
-        if (maxTokensResult.value === undefined) {
-          error(maxTokensResult.error ?? 'Invalid max-tokens value');
-          process.exit(1);
-        }
-        maxTokens = maxTokensResult.value;
-      }
+      const maxIterations = config.maxIterations;
+      const maxTokens = config.maxTokens;
+      const model = config.defaultModel;
 
       let maxDurationMinutes = 0;
       if (options.timeout) {
@@ -231,19 +203,10 @@ See also:
       let githubAssignee: string | undefined;
 
       if (options.github) {
-        const gitRoot = getGitRoot();
-        const configManager = new ConfigManager(gitRoot ?? undefined);
-        const config = await configManager.load({
-          ...(typeof options.github === 'string' ? { githubRepo: options.github } : {}),
-          ...(options.label ? { githubLabel: options.label } : {}),
-          ...(options.milestone ? { githubMilestone: options.milestone } : {}),
-          ...(options.assignee ? { githubAssignee: options.assignee } : {}),
-        });
-
-        githubRepo = typeof options.github === 'string' ? options.github : config.githubRepo;
+        githubRepo = config.githubRepo;
         if (!githubRepo) {
           error(
-            'Missing GitHub repository. Provide --github <owner/repo> or set githubRepo in .ghcralph/config.json (or GHCRALPH_GITHUB_REPO)'
+            'Missing GitHub repository. Set githubRepo in .ghcralph/config.json (or GHCRALPH_GITHUB_REPO)'
           );
           process.exit(1);
         }
@@ -369,7 +332,7 @@ See also:
         console.log(`  ${dim('Plan:')} ${code(planFilePath)}`);
       }
       console.log(`  ${dim('Task:')} ${task.title}`);
-      console.log(`  ${dim('Model:')} ${code(options.model ?? 'gpt-4')}`);
+      console.log(`  ${dim('Model:')} ${code(model)}`);
       console.log(`  ${dim('Max iterations:')} ${maxIterations}`);
       console.log(`  ${dim('Max tokens:')} ${maxTokens.toLocaleString()}`);
 
@@ -387,7 +350,7 @@ See also:
       console.log('');
 
       // Setup git branch isolation
-      const gitManager = new GitBranchManager();
+      const gitManager = new GitBranchManager({ branchPrefix: config.branchPrefix });
       const isGitRepo = await gitManager.isGitRepository();
       let branchInfo: { branchName: string; created: boolean; originalBranch: string } | null = null;
 
@@ -439,7 +402,7 @@ See also:
 
       // Create agent and engine with context configuration
       const agent = new CopilotAgent({
-        model: options.model ?? 'gpt-4',
+        model,
         maxTokensPerRequest: 4096,
       });
 
@@ -471,7 +434,7 @@ See also:
 
       // Create checkpoint manager for auto-commits
       const checkpointManager = new CheckpointManager({
-        autoCommit: options.noCommit !== true,
+        autoCommit: config.autoCommit,
       });
 
       // Create file safeguard manager
