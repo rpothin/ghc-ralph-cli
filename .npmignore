@@ -6,7 +6,6 @@ tsconfig.json
 .ghcralph/
 .github/
 docs/
-PLAN.md
 JOURNAL.md
-REALIGNMENT_PLAN.md
+plans/
 .devcontainer/
