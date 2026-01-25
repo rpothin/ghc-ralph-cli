@@ -162,7 +162,11 @@ See also:
         error(maxIterationsResult.error ?? 'Invalid max-iterations value');
         process.exit(1);
       }
-      const maxIterations = maxIterationsResult.value!;
+      if (maxIterationsResult.value === undefined) {
+        error(maxIterationsResult.error ?? 'Invalid max-iterations value');
+        process.exit(1);
+      }
+      const maxIterations = maxIterationsResult.value;
 
       let maxTokens = 100000;
       if (options.maxTokens) {
@@ -171,7 +175,11 @@ See also:
           error(maxTokensResult.error ?? 'Invalid max-tokens value');
           process.exit(1);
         }
-        maxTokens = maxTokensResult.value!;
+        if (maxTokensResult.value === undefined) {
+          error(maxTokensResult.error ?? 'Invalid max-tokens value');
+          process.exit(1);
+        }
+        maxTokens = maxTokensResult.value;
       }
 
       let maxDurationMinutes = 0;
@@ -181,7 +189,11 @@ See also:
           error(timeoutResult.error ?? 'Invalid timeout value');
           process.exit(1);
         }
-        maxDurationMinutes = timeoutResult.value!;
+        if (timeoutResult.value === undefined) {
+          error(timeoutResult.error ?? 'Invalid timeout value');
+          process.exit(1);
+        }
+        maxDurationMinutes = timeoutResult.value;
       }
 
       // Validate iteration limit

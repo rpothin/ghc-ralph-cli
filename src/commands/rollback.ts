@@ -207,7 +207,11 @@ See also:
           error(iterationsResult.error ?? 'Invalid iterations value');
           return;
         }
-        iterations = iterationsResult.value!;
+        if (iterationsResult.value === undefined) {
+          error(iterationsResult.error ?? 'Invalid iterations value');
+          return;
+        }
+        iterations = iterationsResult.value;
       }
       const commits = await getRalphCommits(iterations + 1);
       
@@ -268,4 +272,3 @@ See also:
       }
     });
 }
-
