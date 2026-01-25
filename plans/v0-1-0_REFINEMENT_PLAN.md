@@ -51,7 +51,7 @@ Same as [the one for the calculator test scenario](../test/integration/calculato
 
 ## Findings
 
-### Finding 1: Init does not provide interactive experience by default
+### Finding 1: Init does not provide interactive experience by default ✅ (Addressed)
 
 ```
 @rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph init

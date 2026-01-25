@@ -5,6 +5,7 @@
  */
 
 import { execSync } from 'node:child_process';
+import { createInterface, type Interface } from 'node:readline/promises';
 import type { Command } from 'commander';
 import { info, success, error, warn, debug, heading, code, dim } from '../utils/index.js';
 import { ConfigManager } from '../core/config-manager.js';
@@ -35,6 +36,77 @@ function getGitRoot(): string | null {
     }).trim();
   } catch {
     return null;
+  }
+}
+
+function isInteractiveTerminal(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+async function promptConfirm(
+  rl: Interface,
+  message: string,
+  defaultValue: boolean
+): Promise<boolean> {
+  while (true) {
+    const hint = defaultValue ? 'Y/n' : 'y/N';
+    const answer = (await rl.question(`${message} (${hint}) `)).trim().toLowerCase();
+
+    if (!answer) return defaultValue;
+    if (answer === 'y' || answer === 'yes') return true;
+    if (answer === 'n' || answer === 'no') return false;
+  }
+}
+
+async function promptNumber(rl: Interface, message: string, defaultValue: number): Promise<number> {
+  while (true) {
+    const answer = (await rl.question(`${message} (${defaultValue}) `)).trim();
+    if (!answer) return defaultValue;
+
+    const parsed = parseInt(answer, 10);
+    if (Number.isInteger(parsed) && parsed > 0) return parsed;
+
+    console.log(dim('Please enter a positive number.'));
+  }
+}
+
+async function promptString(rl: Interface, message: string, defaultValue: string): Promise<string> {
+  const answer = (await rl.question(`${message} (${defaultValue}) `)).trim();
+  return answer || defaultValue;
+}
+
+async function promptSelect<T extends string>(
+  rl: Interface,
+  message: string,
+  options: ReadonlyArray<{ label: string; value: T }>,
+  defaultValue: T
+): Promise<T> {
+  const first = options[0];
+  if (!first) {
+    throw new Error(`No options provided for ${message}`);
+  }
+
+  let defaultIndex = options.findIndex(o => o.value === defaultValue);
+  if (defaultIndex < 0) defaultIndex = 0;
+
+  while (true) {
+    console.log('');
+    console.log(dim(`${message}:`));
+    for (const [i, opt] of options.entries()) {
+      const isDefault = i === defaultIndex;
+      console.log(`  ${i + 1}) ${opt.label}${isDefault ? dim(' (default)') : ''}`);
+    }
+
+    const answer = (await rl.question(`${message} [1-${options.length}] `)).trim();
+    if (!answer) {
+      return options[defaultIndex]?.value ?? first.value;
+    }
+
+    const idx = parseInt(answer, 10) - 1;
+    const selected = Number.isInteger(idx) ? options[idx] : undefined;
+    if (selected) return selected.value;
+
+    console.log(dim('Please enter a valid option number.'));
   }
 }
 
@@ -110,8 +182,113 @@ See also:
       // Update configuration
       configManager.set('planSource', planSource);
 
-      // Initialize local directory and save config
-      const stateDir = await configManager.initLocal();
+      const shouldPrompt =
+        isInteractiveTerminal() &&
+        options.planSource === undefined &&
+        options.github !== true &&
+        options.local !== true;
+
+      let stateDir: string | undefined;
+      try {
+        if (shouldPrompt) {
+          const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+          const current = configManager.getConfig();
+          console.log(dim('Default configuration:'));
+          console.log(`  ${dim('Plan source:')} ${code(current.planSource)}`);
+          console.log(`  ${dim('Max iterations:')} ${current.maxIterations}`);
+          console.log(`  ${dim('Max tokens:')} ${current.maxTokens.toLocaleString()}`);
+          console.log(`  ${dim('Model:')} ${code(current.defaultModel)}`);
+          console.log(`  ${dim('Auto commit:')} ${current.autoCommit}`);
+          console.log(`  ${dim('Branch prefix:')} ${code(current.branchPrefix)}`);
+          console.log('');
+
+          const keepDefaults = await promptConfirm(rl, 'Keep these defaults?', true);
+
+          if (!keepDefaults) {
+            const selectedPlanSource = await promptSelect<PlanSource>(
+              rl,
+              'Plan source',
+              [
+                { label: 'local', value: 'local' },
+                { label: 'github', value: 'github' },
+              ],
+              current.planSource
+            );
+            configManager.set('planSource', selectedPlanSource);
+
+            const maxIterations = await promptNumber(rl, 'Max iterations', current.maxIterations);
+            configManager.set('maxIterations', maxIterations);
+
+            const maxTokens = await promptNumber(rl, 'Max tokens', current.maxTokens);
+            configManager.set('maxTokens', maxTokens);
+
+            const modelOptions = [
+              { label: 'gpt-4.1', value: 'gpt-4.1' },
+              { label: 'gpt-4', value: 'gpt-4' },
+              { label: 'gpt-5', value: 'gpt-5' },
+              { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex' },
+              { label: 'claude-sonnet-4.5', value: 'claude-sonnet-4.5' },
+              { label: 'Custom (enter manually)', value: '__custom__' },
+            ] as const;
+
+            const selectedModel = await promptSelect(
+              rl,
+              'Model',
+              modelOptions,
+              (modelOptions.some(o => o.value === current.defaultModel)
+                ? (current.defaultModel as (typeof modelOptions)[number]['value'])
+                : '__custom__')
+            );
+
+            if (selectedModel === '__custom__') {
+              const customModel = await promptString(rl, 'Custom model', current.defaultModel);
+              configManager.set('defaultModel', customModel);
+            } else {
+              configManager.set('defaultModel', selectedModel);
+            }
+
+            const selectedAutoCommit = await promptSelect<'true' | 'false'>(
+              rl,
+              'Auto commit',
+              [
+                { label: 'true', value: 'true' },
+                { label: 'false', value: 'false' },
+              ],
+              current.autoCommit ? 'true' : 'false'
+            );
+            configManager.set('autoCommit', selectedAutoCommit === 'true');
+
+            const branchPrefix = await promptString(rl, 'Branch prefix', current.branchPrefix);
+            configManager.set('branchPrefix', branchPrefix);
+          }
+
+          const finalConfig = configManager.getConfig();
+          console.log('');
+          console.log(dim('Configuration to write:'));
+          console.log(`  ${dim('Plan source:')} ${code(finalConfig.planSource)}`);
+          console.log(`  ${dim('Max iterations:')} ${finalConfig.maxIterations}`);
+          console.log(`  ${dim('Max tokens:')} ${finalConfig.maxTokens.toLocaleString()}`);
+          console.log(`  ${dim('Model:')} ${code(finalConfig.defaultModel)}`);
+          console.log(`  ${dim('Auto commit:')} ${finalConfig.autoCommit}`);
+          console.log(`  ${dim('Branch prefix:')} ${code(finalConfig.branchPrefix)}`);
+          console.log('');
+
+          const confirmWrite = await promptConfirm(rl, 'Write configuration?', true);
+          rl.close();
+
+          if (!confirmWrite) {
+            info('Initialization cancelled.');
+            return;
+          }
+        }
+
+        // Initialize local directory and save config
+        stateDir = await configManager.initLocal();
+      } catch (e) {
+        error((e as Error).message);
+        process.exit(1);
+      }
 
       // Display configuration
       const config = configManager.getConfig();

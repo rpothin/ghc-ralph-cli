@@ -1035,6 +1035,26 @@ The Ralph realignment is working! The CLI now:
 
 ## 2026-01-25 - Fix Windows CI test portability
 
+## 2026-01-25 - ghcralph init interactive by default
+
+### Problem
+- `ghcralph init` ran non-interactively by default, writing defaults without confirmation or any chance to change them.
+
+### Root cause
+- `src/commands/init.ts` always wrote the config after computing `planSource`, without any prompt/confirmation flow.
+
+### Fix
+- Added an interactive init flow (TTY only) that:
+  - Shows defaults and asks whether to keep them.
+  - If not, prompts for each configuration entry (with option lists for plan source, model, auto-commit).
+  - Summarizes the final config and asks for confirmation before writing.
+- Keeps non-interactive behavior when stdin/stdout are not TTY or when `--local/--github/--plan-source` are provided.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- Manual smoke check in a temp git repo (interactive + non-interactive)
+
 ## 2026-01-25 - Stabilize Windows checkpoint-manager tests
 
 ### Problem
