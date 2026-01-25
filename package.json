@@ -1,12 +1,21 @@
 {
-  "name": "ghcralph-cli",
+  "name": "ghcralph",
   "version": "0.1.0",
   "description": "GitHub Copilot Ralph - A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
-    "ghcralph": "./bin/ghcralph.js"
+    "ghcralph": "bin/ghcralph.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
@@ -18,7 +27,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -71,7 +80,7 @@
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "glob": "^13.0.0",
-    "ora": "^9.1.0",
+    "ora": "^8.2.0",
     "picocolors": "^1.1.1"
   }
 }

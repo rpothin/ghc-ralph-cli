@@ -153,7 +153,7 @@ describe('Path Utilities', () => {
     });
 
     it('should leave absolute path unchanged', () => {
-      const input = '/absolute/path';
+      const input = path.join(path.parse(process.cwd()).root, 'absolute', 'path');
       const result = resolvePath(input);
       
       expect(result).toBe(input);

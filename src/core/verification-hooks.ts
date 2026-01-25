@@ -68,7 +68,7 @@ export interface VerificationConfig {
 /**
  * Default hooks based on common project patterns
  */
-export function detectDefaultHooks(cwd: string): VerificationHook[] {
+export function detectDefaultHooks(_cwd: string): VerificationHook[] {
   const hooks: VerificationHook[] = [];
 
   // These will be populated asynchronously, so this returns a starting point

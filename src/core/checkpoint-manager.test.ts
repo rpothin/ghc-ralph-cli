@@ -12,6 +12,26 @@ import { CheckpointManager, createCheckpointManager } from './checkpoint-manager
 
 const execAsync = promisify(exec);
 
+const IS_WINDOWS = process.platform === 'win32';
+const HOOK_TIMEOUT_MS = IS_WINDOWS ? 30000 : 10000;
+const TEST_TIMEOUT_MS = IS_WINDOWS ? 30000 : 5000;
+
+async function removeDirWithRetries(dir: string, retries: number = 5): Promise<void> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      await fs.rm(dir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      const retryable = code === 'EBUSY' || code === 'EPERM' || code === 'ENOTEMPTY';
+      if (!retryable || attempt === retries - 1) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+    }
+  }
+}
+
 describe('CheckpointManager', () => {
   let tempDir: string;
   let manager: CheckpointManager;
@@ -34,11 +54,11 @@ describe('CheckpointManager', () => {
       autoCommit: true,
       messagePrefix: 'ghcralph:' 
     });
-  });
+  }, HOOK_TIMEOUT_MS);
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+    await removeDirWithRetries(tempDir);
+  }, HOOK_TIMEOUT_MS);
 
   describe('createCheckpointManager', () => {
     it('should create manager with default config', () => {
@@ -85,18 +105,22 @@ describe('CheckpointManager', () => {
       expect(manager.getLastCheckpoint()).toBeNull();
     });
 
-    it('should return last checkpoint', async () => {
-      await fs.writeFile(path.join(tempDir, 'file1.txt'), 'content1');
-      await manager.createCheckpoint(1, 'First', 100);
-      
-      await fs.writeFile(path.join(tempDir, 'file2.txt'), 'content2');
-      await manager.createCheckpoint(2, 'Second', 200);
-      
-      const last = manager.getLastCheckpoint();
-      expect(last).toBeDefined();
-      expect(last?.iteration).toBe(2);
-      expect(last?.message).toContain('Second');
-    });
+    it(
+      'should return last checkpoint',
+      async () => {
+        await fs.writeFile(path.join(tempDir, 'file1.txt'), 'content1');
+        await manager.createCheckpoint(1, 'First', 100);
+
+        await fs.writeFile(path.join(tempDir, 'file2.txt'), 'content2');
+        await manager.createCheckpoint(2, 'Second', 200);
+
+        const last = manager.getLastCheckpoint();
+        expect(last).toBeDefined();
+        expect(last?.iteration).toBe(2);
+        expect(last?.message).toContain('Second');
+      },
+      TEST_TIMEOUT_MS
+    );
   });
 
   describe('hasChangesToCommit', () => {

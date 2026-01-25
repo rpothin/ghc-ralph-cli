@@ -385,7 +385,7 @@
 - Added proper attribution to Geoffrey Huntley for the Ralph Wiggum loop concept
 - Credited Raphael Pothin as the creator of this opinionated interpretation
 - Renamed CLI command from `ralph` to `ghcralph` (GitHub Copilot Ralph)
-- Changed package name from `ralph-cli` to `ghcralph-cli`
+- Changed package name from `ralph-cli` to `ghcralph`
 - Updated branding from "Ralph CLI" to "GitHub Copilot Ralph"
 - Changed default model from `gpt-4` to `gpt-4.1` (0x multiplier for cost efficiency)
 - Updated branch prefix from `ralph/` to `ghcralph/`
@@ -987,3 +987,82 @@ The Ralph realignment is working! The CLI now:
 - Validates work with objective criteria (tests)
 - Exits early when the AI correctly says "complete"
 - Uses significantly fewer iterations and tokens
+
+## 2026-01-24 - MVP Refinement Round
+
+### Completed
+- Added CONTRIBUTING.md with development setup, testing, code quality, PR process, and Contributor Covenant v3.0 reference.
+- Added GitHub Actions workflows for CI (matrix build/test + publish dry run) and npm release publishing.
+- Restricted npm publish contents with package.json files/publishConfig plus .npmignore.
+- Added prepublishOnly script to run lint, typecheck, tests, and build.
+- Added missing core tests for LoopEngine and CopilotAgent.
+
+### Validation
+- `npm run lint` (fails: existing non-null assertions in run/rollback commands).
+- `npm test`.
+
+### Notes
+- Lint failures are pre-existing and were not addressed per request; CI will currently fail until those assertions are fixed.
+
+## 2026-01-25 - NPM naming alignment + README npm-first pass
+
+### Completed
+- Aligned npm package naming to match the CLI command (`ghcralph`): updated `package.json` and `package-lock.json`.
+- Updated README to be more npm-first (quick start + safety model early) and to consistently reference `ghcralph`.
+
+### Validation
+- `npm run lint`
+- `npm test`
+- `npm run typecheck`
+- `npm run build`
+
+## 2026-01-25 - Fix CI Node 18 "Invalid regular expression flags"
+
+### Problem
+- CI failed on **Node 18** with: `SyntaxError: Invalid regular expression flags` during `npm test`.
+- Root cause: dependency chain `ora@9` → `string-width@8` uses RegExp `/v` flag, which is **not supported on Node 18**.
+
+### Fix
+- Downgraded `ora` from `^9.1.0` (Node >= 20) to `^8.2.0` (Node >= 18).
+- This pulls in `string-width@7.x`, which avoids the `/v` regex flag and works on Node 18.
+
+### Validation
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- `npm publish --dry-run`
+
+## 2026-01-25 - Fix Windows CI test portability
+
+## 2026-01-25 - Stabilize Windows checkpoint-manager tests
+
+### Problem
+- CI on **windows-latest / Node 18** was intermittently failing in `src/core/checkpoint-manager.test.ts` due to:
+  - Slow git operations on Windows causing **hook/test timeouts**.
+  - Temp directory cleanup failing with `EBUSY` (Windows file locking).
+
+### Fix
+- Increased `beforeEach`/`afterEach` hook timeouts for the checkpoint-manager test suite on Windows.
+- Increased timeout for the `getLastCheckpoint` test on Windows.
+- Added a small retry loop around temp directory removal to tolerate transient Windows locks.
+
+### Problem
+- CI on **windows-latest / Node 18** was failing due to OS-specific assumptions in unit tests:
+  - `pwd` not available (or executed under a different shell) causing working-directory assertions to fail.
+  - POSIX execute-bit assertions (`chmod` / `mode & 0o111`) failing on Windows.
+  - Absolute-path tests hardcoding POSIX-style `/absolute/path`.
+  - File safeguard details tracking diverging due to Windows path separators (`\`).
+
+### Fix
+- Made FileSafeguard path tracking consistent by normalizing tracked relative paths to forward slashes (`/`).
+- Updated ActionExecutor tests to be cross-platform:
+  - Use `node -e "console.log(process.cwd())"` instead of `pwd`.
+  - Only assert POSIX execute-bit behavior when not running on Windows.
+- Updated path utilities tests to use a platform-native absolute path.
+- Updated shell detection tests to be platform-aware (Windows expects `cmd`).
+
+### Validation
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`

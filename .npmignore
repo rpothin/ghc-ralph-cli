@@ -1,0 +1,11 @@
+src/
+test/
+*.config.ts
+*.config.mjs
+tsconfig.json
+.ghcralph/
+.github/
+docs/
+JOURNAL.md
+plans/
+.devcontainer/

@@ -9,7 +9,7 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { debug } from '../utils/index.js';
-import type { ExecutionResult, ActionResult } from './action-executor.js';
+import type { ExecutionResult } from './action-executor.js';
 import type { VerificationResult } from './verification-hooks.js';
 
 const execAsync = promisify(exec);
