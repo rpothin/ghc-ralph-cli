@@ -385,7 +385,7 @@
 - Added proper attribution to Geoffrey Huntley for the Ralph Wiggum loop concept
 - Credited Raphael Pothin as the creator of this opinionated interpretation
 - Renamed CLI command from `ralph` to `ghcralph` (GitHub Copilot Ralph)
-- Changed package name from `ralph-cli` to `ghcralph-cli`
+- Changed package name from `ralph-cli` to `ghcralph`
 - Updated branding from "Ralph CLI" to "GitHub Copilot Ralph"
 - Changed default model from `gpt-4` to `gpt-4.1` (0x multiplier for cost efficiency)
 - Updated branch prefix from `ralph/` to `ghcralph/`
@@ -1003,3 +1003,15 @@ The Ralph realignment is working! The CLI now:
 
 ### Notes
 - Lint failures are pre-existing and were not addressed per request; CI will currently fail until those assertions are fixed.
+
+## 2026-01-25 - NPM naming alignment + README npm-first pass
+
+### Completed
+- Aligned npm package naming to match the CLI command (`ghcralph`): updated `package.json` and `package-lock.json`.
+- Updated README to be more npm-first (quick start + safety model early) and to consistently reference `ghcralph`.
+
+### Validation
+- `npm run lint`
+- `npm test`
+- `npm run typecheck`
+- `npm run build`
