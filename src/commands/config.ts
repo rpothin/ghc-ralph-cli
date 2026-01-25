@@ -61,7 +61,7 @@ export function registerConfigCommand(program: Command): void {
       if (!isValidConfigKey(key)) {
         error(`Unknown configuration key: ${key}`);
         info(
-          `Valid keys: ${code('planSource, maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix, githubRepo, localPlanFile')}`
+          `Valid keys: ${code('planSource, maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix, githubRepo, githubLabel, githubMilestone, githubAssignee, localPlanFile')}`
         );
         process.exit(1);
       }

@@ -1087,6 +1087,26 @@ The Ralph realignment is working! The CLI now:
 - `npm run typecheck`
 - `npm test`
 
+## 2026-01-25 - ghcralph run: GitHub defaults via config
+
+### Problem
+- When using `ghcralph run --github`, users had to provide `owner/repo` and filters every time.
+
+### Root cause
+- `src/commands/run.ts` did not load `.ghcralph/config.json` / `GHCRALPH_*` defaults for GitHub repo and issue filters.
+
+### Fix
+- Added config keys: `githubLabel`, `githubMilestone`, `githubAssignee` (plus env vars `GHCRALPH_GITHUB_LABEL`, `GHCRALPH_GITHUB_MILESTONE`, `GHCRALPH_GITHUB_ASSIGNEE`).
+- Updated `ghcralph run --github` to accept an optional repo argument and fall back to configured `githubRepo` and default filters.
+- Updated docs and `ghcralph config set` help to include the new keys.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- Manual checks:
+  - `node bin/ghcralph.js run --help` shows `--github [owner/repo]`
+  - `node bin/ghcralph.js run --github --dry-run --force` exits with code 1 when no repo is configured
+
 ## 2026-01-25 - ghcralph run: simplify plan vs file
 
 ### Problem

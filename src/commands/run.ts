@@ -6,6 +6,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 import { Option, type Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim, parsePositiveInt, parseNonNegativeInt } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
@@ -17,6 +18,7 @@ import {
   GitBranchManager,
   CheckpointManager,
   FileSafeguardManager,
+  ConfigManager,
   type PlanManager,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
@@ -25,7 +27,7 @@ export interface RunOptions {
   task?: string;
   file?: string;
   plan?: string;
-  github?: string;
+  github?: string | boolean;
   label?: string;
   milestone?: string;
   assignee?: string;
@@ -70,6 +72,17 @@ async function readTaskFromFile(filePath: string): Promise<string> {
 
 function looksLikeMarkdownPlan(content: string): boolean {
   return /^\s*-\s*\[[ xX]\]\s+.+$/m.test(content);
+}
+
+function getGitRoot(): string | null {
+  try {
+    return execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -126,7 +139,7 @@ export function registerRunCommand(program: Command): void {
     .option('-t, --task <description>', 'Task to execute (inline)')
     .option('-f, --file <path>', 'Read task (or Markdown plan) from file')
     .addOption(new Option('-p, --plan <path>', 'Read tasks from a Markdown plan file (deprecated; use --file)').hideHelp())
-    .option('-g, --github <owner/repo>', 'Use GitHub Issues as plan source')
+    .option('-g, --github [owner/repo]', 'Use GitHub Issues as plan source (defaults from config)')
     .option('-l, --label <label>', 'Filter GitHub issues by label')
     .option('--milestone <name>', 'Filter GitHub issues by milestone')
     .option('--assignee <user>', 'Filter GitHub issues by assignee')
@@ -212,15 +225,43 @@ See also:
         process.exit(1);
       }
 
+      let githubRepo: string | undefined;
+      let githubLabel: string | undefined;
+      let githubMilestone: string | undefined;
+      let githubAssignee: string | undefined;
+
+      if (options.github) {
+        const gitRoot = getGitRoot();
+        const configManager = new ConfigManager(gitRoot ?? undefined);
+        const config = await configManager.load({
+          ...(typeof options.github === 'string' ? { githubRepo: options.github } : {}),
+          ...(options.label ? { githubLabel: options.label } : {}),
+          ...(options.milestone ? { githubMilestone: options.milestone } : {}),
+          ...(options.assignee ? { githubAssignee: options.assignee } : {}),
+        });
+
+        githubRepo = typeof options.github === 'string' ? options.github : config.githubRepo;
+        if (!githubRepo) {
+          error(
+            'Missing GitHub repository. Provide --github <owner/repo> or set githubRepo in .ghcralph/config.json (or GHCRALPH_GITHUB_REPO)'
+          );
+          process.exit(1);
+        }
+
+        githubLabel = config.githubLabel;
+        githubMilestone = config.githubMilestone;
+        githubAssignee = config.githubAssignee;
+      }
+
       // Create task - either from options or from plan source
       let task: Task;
       let planManager: PlanManager | null = null;
       let planFilePath: string | undefined;
 
       try {
-        if (options.github) {
+        if (githubRepo) {
           // Parse owner/repo
-          const parts = options.github.split('/');
+          const parts = githubRepo.split('/');
           if (parts.length !== 2) {
             error('GitHub repository must be in format: owner/repo');
             process.exit(1);
@@ -242,9 +283,9 @@ See also:
             owner,
             repo,
           };
-          if (options.label) ghConfig.label = options.label;
-          if (options.milestone) ghConfig.milestone = options.milestone;
-          if (options.assignee) ghConfig.assignee = options.assignee;
+          if (githubLabel) ghConfig.label = githubLabel;
+          if (githubMilestone) ghConfig.milestone = githubMilestone;
+          if (githubAssignee) ghConfig.assignee = githubAssignee;
 
           planManager = new GitHubPlan(ghConfig);
           await planManager.initialize();
@@ -313,10 +354,16 @@ See also:
       console.log('');
       console.log(heading('🤖 GitHub Copilot Ralph - Run'));
       console.log('');
-      if (options.github) {
-        console.log(`  ${dim('Source:')} GitHub Issues (${code(options.github)})`);
-        if (options.label) {
-          console.log(`  ${dim('Label filter:')} ${code(options.label)}`);
+      if (githubRepo) {
+        console.log(`  ${dim('Source:')} GitHub Issues (${code(githubRepo)})`);
+        if (githubLabel) {
+          console.log(`  ${dim('Label filter:')} ${code(githubLabel)}`);
+        }
+        if (githubMilestone) {
+          console.log(`  ${dim('Milestone filter:')} ${code(githubMilestone)}`);
+        }
+        if (githubAssignee) {
+          console.log(`  ${dim('Assignee filter:')} ${code(githubAssignee)}`);
         }
       } else if (planFilePath) {
         console.log(`  ${dim('Plan:')} ${code(planFilePath)}`);

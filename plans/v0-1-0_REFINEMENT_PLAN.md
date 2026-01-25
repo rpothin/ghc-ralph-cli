@@ -129,7 +129,7 @@ See also:
 
 I think the `--file` and `--plan` parameters are a bit confusing as they both refer to a file containing a plan, but with different formats. If we want to support different file formats (exemple md and json), the processing could be dynamically routed based on the file extension rather than having separate parameters.
 
-### Finding 3: Run could benefit from complementay configuration entries for GitHub Issues plan source
+### Finding 3: Run could benefit from complementay configuration entries for GitHub Issues plan source ✅ (Addressed)
 
 ```
 @rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph run --help

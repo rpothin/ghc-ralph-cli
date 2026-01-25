@@ -192,6 +192,9 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 | `autoCommit`    | `true`      | Auto-commit after iterations                          |
 | `branchPrefix`  | `ghcralph/` | Prefix for GitHub Copilot Ralph branches              |
 | `githubRepo`    | -           | GitHub repository (owner/repo) for GitHub plan source |
+| `githubLabel`   | -           | Default GitHub issue label filter for GitHub plan      |
+| `githubMilestone` | -         | Default GitHub issue milestone filter for GitHub plan  |
+| `githubAssignee` | -          | Default GitHub issue assignee filter for GitHub plan   |
 | `localPlanFile` | -           | Path to local plan file                               |
 
 ### Environment Variables
@@ -205,6 +208,10 @@ export GHCRALPH_DEFAULT_MODEL=gpt-4.1
 export GHCRALPH_AUTO_COMMIT=true
 export GHCRALPH_BRANCH_PREFIX=ghcralph/
 export GHCRALPH_PLAN_SOURCE=local
+export GHCRALPH_GITHUB_REPO=owner/repo
+export GHCRALPH_GITHUB_LABEL=ralph-ready
+export GHCRALPH_GITHUB_MILESTONE=v1.0
+export GHCRALPH_GITHUB_ASSIGNEE=octocat
 ```
 
 ### Example Configuration File
@@ -217,7 +224,10 @@ export GHCRALPH_PLAN_SOURCE=local
   "defaultModel": "gpt-4.1",
   "autoCommit": true,
   "branchPrefix": "ghcralph/",
-  "githubRepo": "owner/repo"
+  "githubRepo": "owner/repo",
+  "githubLabel": "ralph-ready",
+  "githubMilestone": "v1.0",
+  "githubAssignee": "octocat"
 }
 ```
 
