@@ -127,7 +127,9 @@ See also:
   ghcralph init       Initialize Ralph in your project
 ```
 
-I think the `--file` and `--plan` parameters are a bit confusing as they both refer to a file containing a plan, but with different formats. If we want to support different file formats (exemple md and json), the processing could be dynamically routed based on the file extension rather than having separate parameters.
+I think the `--file` parameter should handle both a one-off task file and a Markdown plan file (auto-detected), instead of having a separate `--plan` parameter.
+
+**Update (2026-01-25):** `--plan` was removed entirely; use `--file` for Markdown plan files.
 
 ### Finding 3: Run could benefit from complementay configuration entries for GitHub Issues plan source ✅ (Addressed)
 

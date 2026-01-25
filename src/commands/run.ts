@@ -7,7 +7,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import { Option, type Command } from 'commander';
+import type { Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim, parseNonNegativeInt } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
 import {
@@ -26,7 +26,6 @@ import type { Task } from '../types/index.js';
 export interface RunOptions {
   task?: string;
   file?: string;
-  plan?: string;
   github?: boolean;
   context?: string[];
   branch?: string;
@@ -131,7 +130,6 @@ export function registerRunCommand(program: Command): void {
     .description('Execute an agentic coding loop')
     .option('-t, --task <description>', 'Task to execute (inline)')
     .option('-f, --file <path>', 'Read task (or Markdown plan) from file')
-    .addOption(new Option('-p, --plan <path>', 'Read tasks from a Markdown plan file (deprecated; use --file)').hideHelp())
     .option('-g, --github', 'Use GitHub Issues as plan source (configured via .ghcralph/config.json)')
     .option('-c, --context <glob...>', 'Include files matching glob patterns in context')
     .option('-b, --branch <name>', 'Use or create a specific branch name')
@@ -159,13 +157,8 @@ See also:
   ghcralph init       Initialize Ralph in your project
 `)
     .action(async (options: RunOptions) => {
-      if (!options.task && !options.file && !options.plan && !options.github) {
+      if (!options.task && !options.file && !options.github) {
         error('Please provide a task with --task, --file, or --github');
-        process.exit(1);
-      }
-
-      if (options.plan && options.file) {
-        error('Please provide only one of --file or --plan');
         process.exit(1);
       }
 
@@ -261,13 +254,14 @@ See also:
           await planManager.startTask(task.id);
           info(`Selected issue from GitHub: ${task.title}`);
         } else {
-          const fileArg = options.plan ?? options.file;
-          const forcePlan = options.plan !== undefined;
+          const fileArg = options.file;
 
           if (fileArg) {
-            // If user explicitly used --plan, always treat as plan.
-            // Otherwise, auto-detect Markdown plan files by the presence of task checkboxes.
-            if (forcePlan) {
+            const content = await readTaskFromFile(fileArg);
+            const ext = path.extname(fileArg).toLowerCase();
+            const isMarkdown = ext === '.md' || ext === '.markdown';
+
+            if (isMarkdown && looksLikeMarkdownPlan(content)) {
               planManager = new LocalMarkdownPlan(fileArg);
               planFilePath = fileArg;
               await planManager.initialize();
@@ -279,30 +273,13 @@ See also:
               task = nextTask;
               info(`Selected task from plan: ${task.title}`);
             } else {
-              const content = await readTaskFromFile(fileArg);
-              const ext = path.extname(fileArg).toLowerCase();
-              const isMarkdown = ext === '.md' || ext === '.markdown';
-
-              if (isMarkdown && looksLikeMarkdownPlan(content)) {
-                planManager = new LocalMarkdownPlan(fileArg);
-                planFilePath = fileArg;
-                await planManager.initialize();
-                const nextTask = await planManager.getNextTask();
-                if (!nextTask) {
-                  success('All tasks in the plan are complete!');
-                  return;
-                }
-                task = nextTask;
-                info(`Selected task from plan: ${task.title}`);
-              } else {
-                task = {
-                  id: `task-${Date.now()}`,
-                  title: fileArg,
-                  content,
-                  status: 'pending',
-                  source: 'local',
-                };
-              }
+              task = {
+                id: `task-${Date.now()}`,
+                title: fileArg,
+                content,
+                status: 'pending',
+                source: 'local',
+              };
             }
           } else {
             task = await createTask(options);

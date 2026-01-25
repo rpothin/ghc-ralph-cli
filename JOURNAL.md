@@ -1145,6 +1145,20 @@ The Ralph realignment is working! The CLI now:
 - `npm run typecheck`
 - `npm test`
 - Manual checks:
-  - `node bin/ghcralph.js run --help` no longer shows `--plan`
+  - `node bin/ghcralph.js run --help` does not show `--plan`
   - `node bin/ghcralph.js run --file test/integration/calculator/PLAN.md --dry-run --force` selects a plan task
   - `node bin/ghcralph.js run --file task.md --dry-run --force` treats a non-plan Markdown file as a one-off task
+
+## 2026-01-25 - ghcralph run: remove --plan
+
+### Problem
+- Even as a hidden/deprecated flag, `--plan` is easy to forget and becomes accidental long-term surface area.
+
+### Fix
+- Removed `--plan/-p` from `ghcralph run` entirely; `--file` is the only way to load Markdown plan files (auto-detected).
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual check: `node bin/ghcralph.js run --help` shows no `--plan`
