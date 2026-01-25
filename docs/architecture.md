@@ -116,7 +116,7 @@ sequenceDiagram
     participant SDK as Copilot SDK
     participant API as Copilot API
 
-    User->>CLI: ghcralph run --plan PLAN.md
+    User->>CLI: ghcralph run --file PLAN.md
     
     rect rgb(240, 248, 255)
         Note over CLI,Config: Phase 1: Initialization

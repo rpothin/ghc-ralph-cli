@@ -59,7 +59,7 @@ ghcralph run --github owner/repo --label "bug"
 ghcralph run --task "Add a dark mode toggle to the settings page"
 
 # Multi-step feature from a plan
-ghcralph run --plan features/user-preferences.md
+ghcralph run --file features/user-preferences.md
 
 # With more iterations for complex features
 ghcralph run --task "Implement user authentication with JWT" \
@@ -203,7 +203,7 @@ ghcralph run --task "Create a CONTRIBUTING.md guide for new contributors"
 ghcralph run --task "Address code review feedback: add error handling to API calls"
 
 # Multiple review items
-ghcralph run --plan pr-feedback.md
+ghcralph run --file pr-feedback.md
 
 # Quick style fixes
 ghcralph run --task "Fix linting issues and apply consistent formatting" \

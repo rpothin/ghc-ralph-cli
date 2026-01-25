@@ -5,7 +5,8 @@
  */
 
 import fs from 'node:fs/promises';
-import type { Command } from 'commander';
+import path from 'node:path';
+import { Option, type Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim, parsePositiveInt, parseNonNegativeInt } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
 import {
@@ -67,6 +68,10 @@ async function readTaskFromFile(filePath: string): Promise<string> {
   }
 }
 
+function looksLikeMarkdownPlan(content: string): boolean {
+  return /^\s*-\s*\[[ xX]\]\s+.+$/m.test(content);
+}
+
 /**
  * Create a task object from options
  */
@@ -119,8 +124,8 @@ export function registerRunCommand(program: Command): void {
     .command('run')
     .description('Execute an agentic coding loop')
     .option('-t, --task <description>', 'Task to execute (inline)')
-    .option('-f, --file <path>', 'Read task from file')
-    .option('-p, --plan <path>', 'Read tasks from a Markdown plan file')
+    .option('-f, --file <path>', 'Read task (or Markdown plan) from file')
+    .addOption(new Option('-p, --plan <path>', 'Read tasks from a Markdown plan file (deprecated; use --file)').hideHelp())
     .option('-g, --github <owner/repo>', 'Use GitHub Issues as plan source')
     .option('-l, --label <label>', 'Filter GitHub issues by label')
     .option('--milestone <name>', 'Filter GitHub issues by milestone')
@@ -140,7 +145,7 @@ export function registerRunCommand(program: Command): void {
 Examples:
   $ ghcralph run --task "Add input validation to the login form"
   $ ghcralph run --file tasks/refactor.md --max-iterations 5
-  $ ghcralph run --plan TODO.md
+  $ ghcralph run --file TODO.md
   $ ghcralph run --github owner/repo --label "ralph-ready"
   $ ghcralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
   $ ghcralph run --task "Large refactor" --unlimited --timeout 60
@@ -152,7 +157,12 @@ See also:
 `)
     .action(async (options: RunOptions) => {
       if (!options.task && !options.file && !options.plan && !options.github) {
-        error('Please provide a task with --task, --file, --plan, or --github');
+        error('Please provide a task with --task, --file, or --github');
+        process.exit(1);
+      }
+
+      if (options.plan && options.file) {
+        error('Please provide only one of --file or --plan');
         process.exit(1);
       }
 
@@ -205,6 +215,7 @@ See also:
       // Create task - either from options or from plan source
       let task: Task;
       let planManager: PlanManager | null = null;
+      let planFilePath: string | undefined;
 
       try {
         if (options.github) {
@@ -245,19 +256,53 @@ See also:
           task = nextTask;
           await planManager.startTask(task.id);
           info(`Selected issue from GitHub: ${task.title}`);
-        } else if (options.plan) {
-          // Load task from Markdown plan file
-          planManager = new LocalMarkdownPlan(options.plan);
-          await planManager.initialize();
-          const nextTask = await planManager.getNextTask();
-          if (!nextTask) {
-            success('All tasks in the plan are complete!');
-            return;
-          }
-          task = nextTask;
-          info(`Selected task from plan: ${task.title}`);
         } else {
-          task = await createTask(options);
+          const fileArg = options.plan ?? options.file;
+          const forcePlan = options.plan !== undefined;
+
+          if (fileArg) {
+            // If user explicitly used --plan, always treat as plan.
+            // Otherwise, auto-detect Markdown plan files by the presence of task checkboxes.
+            if (forcePlan) {
+              planManager = new LocalMarkdownPlan(fileArg);
+              planFilePath = fileArg;
+              await planManager.initialize();
+              const nextTask = await planManager.getNextTask();
+              if (!nextTask) {
+                success('All tasks in the plan are complete!');
+                return;
+              }
+              task = nextTask;
+              info(`Selected task from plan: ${task.title}`);
+            } else {
+              const content = await readTaskFromFile(fileArg);
+              const ext = path.extname(fileArg).toLowerCase();
+              const isMarkdown = ext === '.md' || ext === '.markdown';
+
+              if (isMarkdown && looksLikeMarkdownPlan(content)) {
+                planManager = new LocalMarkdownPlan(fileArg);
+                planFilePath = fileArg;
+                await planManager.initialize();
+                const nextTask = await planManager.getNextTask();
+                if (!nextTask) {
+                  success('All tasks in the plan are complete!');
+                  return;
+                }
+                task = nextTask;
+                info(`Selected task from plan: ${task.title}`);
+              } else {
+                task = {
+                  id: `task-${Date.now()}`,
+                  title: fileArg,
+                  content,
+                  status: 'pending',
+                  source: 'local',
+                };
+              }
+            }
+          } else {
+            task = await createTask(options);
+          }
         }
       } catch (err) {
         error(err instanceof Error ? err.message : String(err));
@@ -273,8 +318,8 @@ See also:
         if (options.label) {
           console.log(`  ${dim('Label filter:')} ${code(options.label)}`);
         }
-      } else if (options.plan) {
-        console.log(`  ${dim('Plan:')} ${code(options.plan)}`);
+      } else if (planFilePath) {
+        console.log(`  ${dim('Plan:')} ${code(planFilePath)}`);
       }
       console.log(`  ${dim('Task:')} ${task.title}`);
       console.log(`  ${dim('Model:')} ${code(options.model ?? 'gpt-4')}`);

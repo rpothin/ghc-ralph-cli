@@ -84,7 +84,7 @@ To enhance the user experience, I would suggest to add an interactive mode by de
 
 For Plan Source, Model (list of models available using GitHub Copilot CLI) and Auto commit, please provide a list of options to choose from.
 
-### Finding 2: Run file and plan parameters confusing
+### Finding 2: Run file and plan parameters confusing ✅ (Addressed)
 
 ```
 @rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph run --help

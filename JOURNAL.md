@@ -1086,3 +1086,24 @@ The Ralph realignment is working! The CLI now:
 - `npm run lint`
 - `npm run typecheck`
 - `npm test`
+
+## 2026-01-25 - ghcralph run: simplify plan vs file
+
+### Problem
+- The `ghcralph run` command exposed both `--file` (single task file) and `--plan` (Markdown plan file), which is confusing since both point at a file path.
+
+### Root cause
+- `src/commands/run.ts` treated task-from-file and plan-from-file as separate modes requiring different flags, instead of routing by file content/type.
+
+### Fix
+- Made `--file` accept either a single task file or a Markdown plan file (auto-detected via checkbox tasks in Markdown).
+- Kept `--plan` as a **deprecated** option (hidden from help) that forces plan parsing for backward compatibility.
+- Updated docs/examples to prefer `ghcralph run --file PLAN.md`.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- Manual checks:
+  - `node bin/ghcralph.js run --help` no longer shows `--plan`
+  - `node bin/ghcralph.js run --file test/integration/calculator/PLAN.md --dry-run --force` selects a plan task
+  - `node bin/ghcralph.js run --file task.md --dry-run --force` treats a non-plan Markdown file as a one-off task

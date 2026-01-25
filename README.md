@@ -107,7 +107,7 @@ ghcralph run --task "Refactor auth middleware to reduce duplication"
 
 ### Run from a local Markdown plan
 ```bash
-ghcralph run --plan TODO.md
+ghcralph run --file TODO.md
 ```
 
 ### Run tasks from GitHub Issues
@@ -144,7 +144,7 @@ ghcralph run --task "Add input validation to the login form"
 ghcralph run --file tasks/add-validation.md
 
 # Tasks from a Markdown plan file
-ghcralph run --plan TODO.md
+ghcralph run --file TODO.md
 
 # Tasks from GitHub Issues
 ghcralph run --github owner/repo --label "ready"
