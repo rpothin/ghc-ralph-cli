@@ -1035,6 +1035,18 @@ The Ralph realignment is working! The CLI now:
 
 ## 2026-01-25 - Fix Windows CI test portability
 
+## 2026-01-25 - Stabilize Windows checkpoint-manager tests
+
+### Problem
+- CI on **windows-latest / Node 18** was intermittently failing in `src/core/checkpoint-manager.test.ts` due to:
+  - Slow git operations on Windows causing **hook/test timeouts**.
+  - Temp directory cleanup failing with `EBUSY` (Windows file locking).
+
+### Fix
+- Increased `beforeEach`/`afterEach` hook timeouts for the checkpoint-manager test suite on Windows.
+- Increased timeout for the `getLastCheckpoint` test on Windows.
+- Added a small retry loop around temp directory removal to tolerate transient Windows locks.
+
 ### Problem
 - CI on **windows-latest / Node 18** was failing due to OS-specific assumptions in unit tests:
   - `pwd` not available (or executed under a different shell) causing working-directory assertions to fail.
