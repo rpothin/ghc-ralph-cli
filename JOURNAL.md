@@ -1015,3 +1015,20 @@ The Ralph realignment is working! The CLI now:
 - `npm test`
 - `npm run typecheck`
 - `npm run build`
+
+## 2026-01-25 - Fix CI Node 18 "Invalid regular expression flags"
+
+### Problem
+- CI failed on **Node 18** with: `SyntaxError: Invalid regular expression flags` during `npm test`.
+- Root cause: dependency chain `ora@9` → `string-width@8` uses RegExp `/v` flag, which is **not supported on Node 18**.
+
+### Fix
+- Downgraded `ora` from `^9.1.0` (Node >= 20) to `^8.2.0` (Node >= 18).
+- This pulls in `string-width@7.x`, which avoids the `/v` regex flag and works on Node 18.
+
+### Validation
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- `npm publish --dry-run`
