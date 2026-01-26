@@ -201,6 +201,18 @@
 - Keyword extraction filters common stop words
 - Limits to 5 relevant files and 3 top keywords for efficiency
 
+## 2026-01-26 - Finding 6: Fix first-run branch error + clean shutdown
+
+### Completed
+- Git branch creation/switch now tolerates failing git hooks (e.g. Git LFS hooks when git-lfs is missing) when the branch is actually checked out, and prints guidance instead of hard-failing.
+- Copilot agent execution now uses `session.sendAndWait()` to avoid leaking session event handlers.
+- `ghcralph run` now removes SIGINT/SIGTERM handlers and destroys the Copilot agent before exit.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+
 ## 2026-01-24 - Issue #11: Git Branch Isolation
 
 ### Completed

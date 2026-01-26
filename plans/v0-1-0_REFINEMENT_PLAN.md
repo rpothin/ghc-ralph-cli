@@ -265,7 +265,7 @@ When running `ghcralph run --dry-run`, the model presented in the summary is `gp
 
 **Update (2026-01-26):** `ghcralph run` now always loads config and uses `defaultModel` for both dry-run output and actual runs.
 
-### Finding 6: First simple run generates an error
+### Finding 6: First simple run generates an error ✅ (Addressed)
 
 ```
 @rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph run --plan PLAN.md
@@ -371,3 +371,7 @@ Node.js v24.12.0
 ```
 
 This indicates that the run process does not terminate correctly after completing the task, leading to a situation where the user has to manually interrupt the process. The CLI should ensure that it exits gracefully after task completion, returning control to the user without requiring manual intervention.
+
+**Update (2026-01-26):**
+- Git branch creation/switch now tolerates failing git hooks (e.g. Git LFS hooks when git-lfs is missing) when the branch was actually checked out, and prints guidance instead of throwing.
+- Copilot session handling now uses `sendAndWait()` (which unsubscribes its event handler) to avoid leaking listeners; `ghcralph run` also cleans up SIGINT/SIGTERM handlers and destroys the agent on exit.

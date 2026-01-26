@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CopilotAgent } from './copilot-agent.js';
 
-let mockOn:
-  | ((handler: (event: { type: string; data: { content?: string; message?: string } }) => void) => void)
+let mockSendAndWait:
+  | ((args: { prompt: string }) => Promise<{ type: string; data: { content?: string } } | undefined>)
   | null = null;
-let mockSend: ((args: { prompt: string }) => Promise<void>) | null = null;
 
 vi.mock(
   '@github/copilot-sdk',
@@ -13,8 +12,10 @@ vi.mock(
       start: () => Promise<void>;
       stop: () => Promise<void>;
       createSession: () => Promise<{
-        on: (handler: (event: { type: string; data: { content?: string; message?: string } }) => void) => void;
-        send: (args: { prompt: string }) => Promise<void>;
+        sendAndWait: (
+          args: { prompt: string },
+          timeout?: number
+        ) => Promise<{ type: string; data: { content?: string } } | undefined>;
         destroy: () => Promise<void>;
       }>;
     };
@@ -24,20 +25,18 @@ vi.mock(
         async start(): Promise<void> {}
         async stop(): Promise<void> {}
         async createSession(): Promise<{
-          on: (handler: (event: { type: string; data: { content?: string; message?: string } }) => void) => void;
-          send: (args: { prompt: string }) => Promise<void>;
+          sendAndWait: (
+            args: { prompt: string },
+            timeout?: number
+          ) => Promise<{ type: string; data: { content?: string } } | undefined>;
           destroy: () => Promise<void>;
         }> {
           return {
-            on: (
-              handler: (event: { type: string; data: { content?: string; message?: string } }) => void
-            ): void => {
-              mockOn = handler;
-            },
-            send: async (args: { prompt: string }): Promise<void> => {
-              if (mockSend) {
-                await mockSend(args);
+            sendAndWait: async (args: { prompt: string }): Promise<{ type: string; data: { content?: string } } | undefined> => {
+              if (mockSendAndWait) {
+                return await mockSendAndWait(args);
               }
+              return undefined;
             },
             destroy: async (): Promise<void> => {},
           };
@@ -60,8 +59,7 @@ vi.mock(
 
 describe('CopilotAgent', () => {
   beforeEach((): void => {
-    mockOn = null;
-    mockSend = null;
+    mockSendAndWait = null;
   });
 
   afterEach((): void => {
@@ -74,11 +72,8 @@ describe('CopilotAgent', () => {
     const initialized = await agent.initialize();
     expect(initialized).toBe(true);
 
-    mockSend = async (): Promise<void> => {
-      if (mockOn) {
-        mockOn({ type: 'assistant.message', data: { content: 'Hello' } });
-        mockOn({ type: 'session.idle', data: {} });
-      }
+    mockSendAndWait = async (): Promise<{ type: string; data: { content?: string } } | undefined> => {
+      return { type: 'assistant.message', data: { content: 'Hello' } };
     };
 
     const result = await agent.execute('Say hello');
@@ -93,10 +88,8 @@ describe('CopilotAgent', () => {
 
     await agent.initialize();
 
-    mockSend = async (): Promise<void> => {
-      if (mockOn) {
-        mockOn({ type: 'session.error', data: { message: 'Boom' } });
-      }
+    mockSendAndWait = async (): Promise<{ type: string; data: { content?: string } } | undefined> => {
+      throw new Error('Boom');
     };
 
     const result = await agent.execute('fail');

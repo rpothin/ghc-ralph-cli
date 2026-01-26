@@ -106,7 +106,7 @@ async function createTask(options: RunOptions): Promise<Task> {
 /**
  * Handle graceful shutdown on Ctrl+C
  */
-function setupSignalHandlers(engine: LoopEngine): void {
+function setupSignalHandlers(engine: LoopEngine): () => void {
   let shutdownRequested = false;
 
   const handler = (): void => {
@@ -122,6 +122,11 @@ function setupSignalHandlers(engine: LoopEngine): void {
 
   process.on('SIGINT', handler);
   process.on('SIGTERM', handler);
+
+  return () => {
+    process.off('SIGINT', handler);
+    process.off('SIGTERM', handler);
+  };
 }
 
 export function registerRunCommand(program: Command): void {
@@ -421,7 +426,7 @@ See also:
       await fileSafeguard.initialize();
 
       // Setup signal handlers for graceful shutdown
-      setupSignalHandlers(engine);
+      const cleanupSignalHandlers = setupSignalHandlers(engine);
 
       // Setup event listeners
       const events = engine.getEvents();
@@ -476,6 +481,8 @@ See also:
       const loopSpinner = spinner('Running agentic loop...');
       loopSpinner.start();
 
+      let exitCode = 0;
+
       try {
         const finalState = await engine.start(task);
 
@@ -509,12 +516,19 @@ See also:
             await planManager.failTask(task.id);
           }
           error('Loop failed');
-          process.exit(1);
+          exitCode = 1;
         }
       } catch (err) {
         loopSpinner.fail('Loop failed');
         error(err instanceof Error ? err.message : String(err));
-        process.exit(1);
+        exitCode = 1;
+      } finally {
+        cleanupSignalHandlers();
+        await agent.destroy();
+      }
+
+      if (exitCode !== 0) {
+        process.exit(exitCode);
       }
     });
 }
