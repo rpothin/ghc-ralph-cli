@@ -1162,3 +1162,24 @@ The Ralph realignment is working! The CLI now:
 - `npm test`
 - `npm run build`
 - Manual check: `node bin/ghcralph.js run --help` shows no `--plan`
+
+## 2026-01-26 - ghcralph init: prompt GitHub config only when planSource=github
+
+### Problem
+- After adding GitHub defaults to configuration (repo/filters), `ghcralph init` did not help users set them up, and local plan users should not be prompted for GitHub details.
+
+### Root cause
+- `src/commands/init.ts` only prompted for generic configuration keys and did not branch on `planSource` to collect GitHub-specific configuration.
+
+### Fix
+- Updated interactive init to:
+  - Prompt for `githubRepo` (required) when `planSource=github`
+  - Optionally prompt for `githubLabel` / `githubMilestone` / `githubAssignee`
+  - Skip all GitHub prompts when `planSource=local`
+- Enhanced init output summary to display GitHub settings when `planSource=github`, and warn if GitHub plan source is selected but `githubRepo` is missing.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual check: `node bin/ghcralph.js init --help`

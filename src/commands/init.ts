@@ -75,6 +75,26 @@ async function promptString(rl: Interface, message: string, defaultValue: string
   return answer || defaultValue;
 }
 
+async function promptGitHubRepo(rl: Interface, defaultValue?: string): Promise<string> {
+  while (true) {
+    const hint = defaultValue ? ` (${defaultValue}) ` : ' ';
+    const answer = (await rl.question(`GitHub repo (owner/repo)${hint}`)).trim();
+    const value = answer || defaultValue || '';
+
+    const parts = value.split('/');
+    if (parts.length === 2 && parts[0] && parts[1]) return value;
+
+    console.log(dim('Please enter a valid repo in the form owner/repo.'));
+  }
+}
+
+async function promptOptionalString(rl: Interface, message: string, defaultValue?: string): Promise<string | undefined> {
+  const hint = defaultValue ? ` (${defaultValue}) ` : ' ';
+  const answer = (await rl.question(`${message}${hint}`)).trim();
+  const value = answer || defaultValue || '';
+  return value ? value : undefined;
+}
+
 async function promptSelect<T extends string>(
   rl: Interface,
   message: string,
@@ -201,6 +221,18 @@ See also:
           console.log(`  ${dim('Model:')} ${code(current.defaultModel)}`);
           console.log(`  ${dim('Auto commit:')} ${current.autoCommit}`);
           console.log(`  ${dim('Branch prefix:')} ${code(current.branchPrefix)}`);
+          if (current.planSource === 'github') {
+            console.log(`  ${dim('GitHub repo:')} ${code(current.githubRepo ?? '(not set)')}`);
+            if (current.githubLabel) {
+              console.log(`  ${dim('GitHub label:')} ${code(current.githubLabel)}`);
+            }
+            if (current.githubMilestone) {
+              console.log(`  ${dim('GitHub milestone:')} ${code(current.githubMilestone)}`);
+            }
+            if (current.githubAssignee) {
+              console.log(`  ${dim('GitHub assignee:')} ${code(current.githubAssignee)}`);
+            }
+          }
           console.log('');
 
           const keepDefaults = await promptConfirm(rl, 'Keep these defaults?', true);
@@ -263,6 +295,42 @@ See also:
             configManager.set('branchPrefix', branchPrefix);
           }
 
+          const finalPlanSource = configManager.getConfig().planSource;
+          if (finalPlanSource === 'github') {
+            const repo = await promptGitHubRepo(rl, configManager.getConfig().githubRepo);
+            configManager.set('githubRepo', repo);
+
+            const hasAnyFilters = Boolean(
+              configManager.getConfig().githubLabel ||
+                configManager.getConfig().githubMilestone ||
+                configManager.getConfig().githubAssignee
+            );
+            const setFilters = await promptConfirm(
+              rl,
+              'Configure default GitHub issue filters (label/milestone/assignee)?',
+              hasAnyFilters
+            );
+
+            if (setFilters) {
+              const label = await promptOptionalString(rl, 'GitHub label filter', configManager.getConfig().githubLabel);
+              if (label) configManager.set('githubLabel', label);
+
+              const milestone = await promptOptionalString(
+                rl,
+                'GitHub milestone filter',
+                configManager.getConfig().githubMilestone
+              );
+              if (milestone) configManager.set('githubMilestone', milestone);
+
+              const assignee = await promptOptionalString(
+                rl,
+                'GitHub assignee filter',
+                configManager.getConfig().githubAssignee
+              );
+              if (assignee) configManager.set('githubAssignee', assignee);
+            }
+          }
+
           const finalConfig = configManager.getConfig();
           console.log('');
           console.log(dim('Configuration to write:'));
@@ -272,6 +340,18 @@ See also:
           console.log(`  ${dim('Model:')} ${code(finalConfig.defaultModel)}`);
           console.log(`  ${dim('Auto commit:')} ${finalConfig.autoCommit}`);
           console.log(`  ${dim('Branch prefix:')} ${code(finalConfig.branchPrefix)}`);
+          if (finalConfig.planSource === 'github') {
+            console.log(`  ${dim('GitHub repo:')} ${code(finalConfig.githubRepo ?? '(not set)')}`);
+            if (finalConfig.githubLabel) {
+              console.log(`  ${dim('GitHub label:')} ${code(finalConfig.githubLabel)}`);
+            }
+            if (finalConfig.githubMilestone) {
+              console.log(`  ${dim('GitHub milestone:')} ${code(finalConfig.githubMilestone)}`);
+            }
+            if (finalConfig.githubAssignee) {
+              console.log(`  ${dim('GitHub assignee:')} ${code(finalConfig.githubAssignee)}`);
+            }
+          }
           console.log('');
 
           const confirmWrite = await promptConfirm(rl, 'Write configuration?', true);
@@ -299,7 +379,24 @@ See also:
       console.log(`  ${dim('Model:')} ${code(config.defaultModel)}`);
       console.log(`  ${dim('Auto commit:')} ${config.autoCommit}`);
       console.log(`  ${dim('Branch prefix:')} ${code(config.branchPrefix)}`);
+      if (config.planSource === 'github') {
+        console.log(`  ${dim('GitHub repo:')} ${code(config.githubRepo ?? '(not set)')}`);
+        if (config.githubLabel) {
+          console.log(`  ${dim('GitHub label:')} ${code(config.githubLabel)}`);
+        }
+        if (config.githubMilestone) {
+          console.log(`  ${dim('GitHub milestone:')} ${code(config.githubMilestone)}`);
+        }
+        if (config.githubAssignee) {
+          console.log(`  ${dim('GitHub assignee:')} ${code(config.githubAssignee)}`);
+        }
+      }
       console.log('');
+
+      if (config.planSource === 'github' && !config.githubRepo) {
+        warn('GitHub plan source selected but githubRepo is not configured.');
+        info(`Set it with ${code('ghcralph config set githubRepo owner/repo')} (or GHCRALPH_GITHUB_REPO).`);
+      }
       console.log(dim('Created:'));
       console.log(`  ${code(stateDir)}`);
       console.log('');

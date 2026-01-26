@@ -176,6 +176,8 @@ See also:
 
 When using GitHub Issues as plan source, it could be useful to have complementary configuration entries in the `.ghcralph` configuration file to define default values for the owner/repo, label, milestone and assignee filters.
 
+**Update (2026-01-26):** `ghcralph init` now prompts for `githubRepo` (and optionally label/milestone/assignee) only when `planSource=github`.
+
 ### Finding 4: Run parameters should not offer overwriting configuration file values ✅ (Addressed)
 
 ```
