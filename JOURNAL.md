@@ -1163,6 +1163,23 @@ The Ralph realignment is working! The CLI now:
 - `npm run build`
 - Manual check: `node bin/ghcralph.js run --help` shows no `--plan`
 
+## 2026-01-26 - Finding 5: run dry-run uses configured model
+
+### Problem
+- `ghcralph run --dry-run` used to display a hardcoded/default model (`gpt-4`) instead of the configured `defaultModel`.
+
+### Root cause
+- `ghcralph run` was not consistently loading `.ghcralph/config.json` / `GHCRALPH_*` before printing its run summary.
+
+### Fix
+- `ghcralph run` now loads config at startup and uses `defaultModel` for both dry-run output and real runs.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual smoke test: init a temp repo, set `defaultModel` in `.ghcralph/config.json`, then run `ghcralph run --file PLAN.md --dry-run` and verify the model printed matches config.
+
 ## 2026-01-26 - ghcralph init: prompt GitHub config only when planSource=github
 
 ### Problem

@@ -225,10 +225,10 @@ Some of the parameters available when running `ghcralph run` are already defined
 
 This ajustement could be completed by enhancing the documentation to clearly indicate which parameters can be set only via the configuration file and which ones can be set only via command line parameters and also the output of the help command to reflect this distinction.
 
-### Finding 5: Run dry run does present a model different than the one defined in the configuration file
+### Finding 5: Run dry run does present a model different than the one defined in the configuration file ✅ (Addressed)
 
 ```
-@rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph run --plan PLAN.md --dry-run
+@rpothin ➜ /workspaces/ghc-ralph-cli-demo (main) $ ghcralph run --file PLAN.md --dry-run
 ℹ Loaded 11 tasks from PLAN.md
 ℹ Selected task from plan: Create calculator.sh with basic structure
 
@@ -261,7 +261,9 @@ Create calculator.sh with basic structure
   branchPrefix: ghcralph/
 ```
 
-When running `ghcralph run --dry-run`, the model presented in the summary is `gpt-4`, while the configuration file indicates `gpt-5.2-codex` as the default model. It indicates either the dry run is not reading the configuration file correctly, or the model value is hardcoded in the dry run output or worse is not being used at all by the run command (hypothesis confirmed running run without the dry-run flag).
+When running `ghcralph run --dry-run`, the model presented in the summary is `gpt-4`, while the configuration file indicates `gpt-5.2-codex` as the default model. It indicates either the dry run is not reading the configuration file correctly, or the model value is hardcoded in the dry run output or worse is not being used at all by the run command.
+
+**Update (2026-01-26):** `ghcralph run` now always loads config and uses `defaultModel` for both dry-run output and actual runs.
 
 ### Finding 6: First simple run generates an error
 
