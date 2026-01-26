@@ -290,6 +290,28 @@ gh auth login
 export GITHUB_TOKEN=your_token
 ```
 
+### Git LFS hook error when creating/switching branches
+
+If you see an error like:
+
+> This repository is configured for Git LFS but 'git-lfs' was not found on your path
+
+It means your repository has Git LFS **git hooks** installed (e.g. `.git/hooks/post-checkout`) but the `git-lfs` binary is not installed.
+
+Ralph does **not** require Git LFS by itself, but it uses `git checkout` to create/switch branches, which triggers those hooks.
+
+Fix options:
+
+```bash
+# Option A: install Git LFS
+# (Debian/Ubuntu)
+sudo apt-get update && sudo apt-get install -y git-lfs
+git lfs install
+
+# Option B: remove the offending hooks (per-repo)
+rm -f .git/hooks/post-checkout .git/hooks/post-merge .git/hooks/post-commit
+```
+
 ---
 
 ## When NOT to Use Ralph

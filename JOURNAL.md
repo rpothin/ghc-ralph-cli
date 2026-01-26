@@ -1212,3 +1212,17 @@ The Ralph realignment is working! The CLI now:
 - `npm test`
 - `npm run build`
 - Manual check: `node bin/ghcralph.js init --help`
+
+## 2026-01-26 - Docs/devcontainer: avoid Git LFS requirement
+
+### Problem
+- Some environments install Git LFS hooks (e.g. `.git/hooks/post-checkout`) without ensuring `git-lfs` is available, which can make `git checkout` return a non-zero exit code and confuse first-time `ghcralph run` users.
+
+### Fix
+- Removed `git-lfs` install and `git lfs install` from `.devcontainer/devcontainer.json`.
+- Documented the Git LFS hook error and mitigation steps in `docs/cookbook.md`.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`

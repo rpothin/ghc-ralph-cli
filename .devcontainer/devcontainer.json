@@ -24,7 +24,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "npm install @github/copilot-sdk && sudo apt-get update && sudo apt-get install -y git-lfs && git lfs install"
+	"postCreateCommand": "npm install"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
