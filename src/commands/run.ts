@@ -5,8 +5,10 @@
  */
 
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import { execSync } from 'node:child_process';
 import type { Command } from 'commander';
-import { info, success, error, warn, debug, spinner, heading, code, dim, parsePositiveInt, parseNonNegativeInt } from '../utils/index.js';
+import { info, success, error, warn, debug, spinner, heading, code, dim, parseNonNegativeInt } from '../utils/index.js';
 import { CopilotAgent } from '../integrations/index.js';
 import {
   LoopEngine,
@@ -16,6 +18,7 @@ import {
   GitBranchManager,
   CheckpointManager,
   FileSafeguardManager,
+  ConfigManager,
   type PlanManager,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
@@ -23,21 +26,13 @@ import type { Task } from '../types/index.js';
 export interface RunOptions {
   task?: string;
   file?: string;
-  plan?: string;
-  github?: string;
-  label?: string;
-  milestone?: string;
-  assignee?: string;
+  github?: boolean;
   context?: string[];
   branch?: string;
   force?: boolean;
-  noCommit?: boolean;
   unlimited?: boolean;
   timeout?: string;
   allowDelete?: boolean;
-  maxIterations: string;
-  maxTokens?: string;
-  model?: string;
   dryRun?: boolean;
 }
 
@@ -64,6 +59,21 @@ async function readTaskFromFile(filePath: string): Promise<string> {
     return content.trim();
   } catch {
     throw new Error(`Failed to read task file: ${filePath}`);
+  }
+}
+
+function looksLikeMarkdownPlan(content: string): boolean {
+  return /^\s*-\s*\[[ xX]\]\s+.+$/m.test(content);
+}
+
+function getGitRoot(): string | null {
+  try {
+    return execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+  } catch {
+    return null;
   }
 }
 
@@ -96,7 +106,7 @@ async function createTask(options: RunOptions): Promise<Task> {
 /**
  * Handle graceful shutdown on Ctrl+C
  */
-function setupSignalHandlers(engine: LoopEngine): void {
+function setupSignalHandlers(engine: LoopEngine): () => void {
   let shutdownRequested = false;
 
   const handler = (): void => {
@@ -112,6 +122,11 @@ function setupSignalHandlers(engine: LoopEngine): void {
 
   process.on('SIGINT', handler);
   process.on('SIGTERM', handler);
+
+  return () => {
+    process.off('SIGINT', handler);
+    process.off('SIGTERM', handler);
+  };
 }
 
 export function registerRunCommand(program: Command): void {
@@ -119,29 +134,25 @@ export function registerRunCommand(program: Command): void {
     .command('run')
     .description('Execute an agentic coding loop')
     .option('-t, --task <description>', 'Task to execute (inline)')
-    .option('-f, --file <path>', 'Read task from file')
-    .option('-p, --plan <path>', 'Read tasks from a Markdown plan file')
-    .option('-g, --github <owner/repo>', 'Use GitHub Issues as plan source')
-    .option('-l, --label <label>', 'Filter GitHub issues by label')
-    .option('--milestone <name>', 'Filter GitHub issues by milestone')
-    .option('--assignee <user>', 'Filter GitHub issues by assignee')
+    .option('-f, --file <path>', 'Read task (or Markdown plan) from file')
+    .option('-g, --github', 'Use GitHub Issues as plan source (configured via .ghcralph/config.json)')
     .option('-c, --context <glob...>', 'Include files matching glob patterns in context')
     .option('-b, --branch <name>', 'Use or create a specific branch name')
     .option('--force', 'Skip branch confirmation prompts')
-    .option('--no-commit', 'Disable automatic checkpoint commits')
     .option('--unlimited', 'Allow more than 50 iterations')
     .option('--timeout <minutes>', 'Maximum duration in minutes')
     .option('--allow-delete', 'Allow deletion of pre-existing files')
-    .option('-n, --max-iterations <number>', 'Maximum loop iterations', '10')
-    .option('--max-tokens <number>', 'Maximum token budget', '100000')
-    .option('-m, --model <model>', 'Copilot model to use', 'gpt-4')
     .option('--dry-run', 'Show what would happen without executing')
     .addHelpText('after', `
+Config-backed settings (set via .ghcralph/config.json or GHCRALPH_* env vars):
+  - maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix
+  - githubRepo (+ optional filters: githubLabel, githubMilestone, githubAssignee)
+
 Examples:
   $ ghcralph run --task "Add input validation to the login form"
-  $ ghcralph run --file tasks/refactor.md --max-iterations 5
-  $ ghcralph run --plan TODO.md
-  $ ghcralph run --github owner/repo --label "ralph-ready"
+  $ ghcralph run --file tasks/refactor.md
+  $ ghcralph run --file TODO.md
+  $ ghcralph run --github
   $ ghcralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
   $ ghcralph run --task "Large refactor" --unlimited --timeout 60
 
@@ -151,36 +162,18 @@ See also:
   ghcralph init       Initialize Ralph in your project
 `)
     .action(async (options: RunOptions) => {
-      if (!options.task && !options.file && !options.plan && !options.github) {
-        error('Please provide a task with --task, --file, --plan, or --github');
+      if (!options.task && !options.file && !options.github) {
+        error('Please provide a task with --task, --file, or --github');
         process.exit(1);
       }
 
-      // Validate numeric inputs
-      const maxIterationsResult = parsePositiveInt(options.maxIterations, 'max-iterations');
-      if (!maxIterationsResult.valid) {
-        error(maxIterationsResult.error ?? 'Invalid max-iterations value');
-        process.exit(1);
-      }
-      if (maxIterationsResult.value === undefined) {
-        error(maxIterationsResult.error ?? 'Invalid max-iterations value');
-        process.exit(1);
-      }
-      const maxIterations = maxIterationsResult.value;
+      const gitRoot = getGitRoot();
+      const configManager = new ConfigManager(gitRoot ?? undefined);
+      const config = await configManager.load();
 
-      let maxTokens = 100000;
-      if (options.maxTokens) {
-        const maxTokensResult = parsePositiveInt(options.maxTokens, 'max-tokens');
-        if (!maxTokensResult.valid) {
-          error(maxTokensResult.error ?? 'Invalid max-tokens value');
-          process.exit(1);
-        }
-        if (maxTokensResult.value === undefined) {
-          error(maxTokensResult.error ?? 'Invalid max-tokens value');
-          process.exit(1);
-        }
-        maxTokens = maxTokensResult.value;
-      }
+      const maxIterations = config.maxIterations;
+      const maxTokens = config.maxTokens;
+      const model = config.defaultModel;
 
       let maxDurationMinutes = 0;
       if (options.timeout) {
@@ -202,14 +195,34 @@ See also:
         process.exit(1);
       }
 
+      let githubRepo: string | undefined;
+      let githubLabel: string | undefined;
+      let githubMilestone: string | undefined;
+      let githubAssignee: string | undefined;
+
+      if (options.github) {
+        githubRepo = config.githubRepo;
+        if (!githubRepo) {
+          error(
+            'Missing GitHub repository. Set githubRepo in .ghcralph/config.json (or GHCRALPH_GITHUB_REPO)'
+          );
+          process.exit(1);
+        }
+
+        githubLabel = config.githubLabel;
+        githubMilestone = config.githubMilestone;
+        githubAssignee = config.githubAssignee;
+      }
+
       // Create task - either from options or from plan source
       let task: Task;
       let planManager: PlanManager | null = null;
+      let planFilePath: string | undefined;
 
       try {
-        if (options.github) {
+        if (githubRepo) {
           // Parse owner/repo
-          const parts = options.github.split('/');
+          const parts = githubRepo.split('/');
           if (parts.length !== 2) {
             error('GitHub repository must be in format: owner/repo');
             process.exit(1);
@@ -231,9 +244,9 @@ See also:
             owner,
             repo,
           };
-          if (options.label) ghConfig.label = options.label;
-          if (options.milestone) ghConfig.milestone = options.milestone;
-          if (options.assignee) ghConfig.assignee = options.assignee;
+          if (githubLabel) ghConfig.label = githubLabel;
+          if (githubMilestone) ghConfig.milestone = githubMilestone;
+          if (githubAssignee) ghConfig.assignee = githubAssignee;
 
           planManager = new GitHubPlan(ghConfig);
           await planManager.initialize();
@@ -245,19 +258,37 @@ See also:
           task = nextTask;
           await planManager.startTask(task.id);
           info(`Selected issue from GitHub: ${task.title}`);
-        } else if (options.plan) {
-          // Load task from Markdown plan file
-          planManager = new LocalMarkdownPlan(options.plan);
-          await planManager.initialize();
-          const nextTask = await planManager.getNextTask();
-          if (!nextTask) {
-            success('All tasks in the plan are complete!');
-            return;
-          }
-          task = nextTask;
-          info(`Selected task from plan: ${task.title}`);
         } else {
-          task = await createTask(options);
+          const fileArg = options.file;
+
+          if (fileArg) {
+            const content = await readTaskFromFile(fileArg);
+            const ext = path.extname(fileArg).toLowerCase();
+            const isMarkdown = ext === '.md' || ext === '.markdown';
+
+            if (isMarkdown && looksLikeMarkdownPlan(content)) {
+              planManager = new LocalMarkdownPlan(fileArg);
+              planFilePath = fileArg;
+              await planManager.initialize();
+              const nextTask = await planManager.getNextTask();
+              if (!nextTask) {
+                success('All tasks in the plan are complete!');
+                return;
+              }
+              task = nextTask;
+              info(`Selected task from plan: ${task.title}`);
+            } else {
+              task = {
+                id: `task-${Date.now()}`,
+                title: fileArg,
+                content,
+                status: 'pending',
+                source: 'local',
+              };
+            }
+          } else {
+            task = await createTask(options);
+          }
         }
       } catch (err) {
         error(err instanceof Error ? err.message : String(err));
@@ -268,16 +299,22 @@ See also:
       console.log('');
       console.log(heading('🤖 GitHub Copilot Ralph - Run'));
       console.log('');
-      if (options.github) {
-        console.log(`  ${dim('Source:')} GitHub Issues (${code(options.github)})`);
-        if (options.label) {
-          console.log(`  ${dim('Label filter:')} ${code(options.label)}`);
+      if (githubRepo) {
+        console.log(`  ${dim('Source:')} GitHub Issues (${code(githubRepo)})`);
+        if (githubLabel) {
+          console.log(`  ${dim('Label filter:')} ${code(githubLabel)}`);
         }
-      } else if (options.plan) {
-        console.log(`  ${dim('Plan:')} ${code(options.plan)}`);
+        if (githubMilestone) {
+          console.log(`  ${dim('Milestone filter:')} ${code(githubMilestone)}`);
+        }
+        if (githubAssignee) {
+          console.log(`  ${dim('Assignee filter:')} ${code(githubAssignee)}`);
+        }
+      } else if (planFilePath) {
+        console.log(`  ${dim('Plan:')} ${code(planFilePath)}`);
       }
       console.log(`  ${dim('Task:')} ${task.title}`);
-      console.log(`  ${dim('Model:')} ${code(options.model ?? 'gpt-4')}`);
+      console.log(`  ${dim('Model:')} ${code(model)}`);
       console.log(`  ${dim('Max iterations:')} ${maxIterations}`);
       console.log(`  ${dim('Max tokens:')} ${maxTokens.toLocaleString()}`);
 
@@ -295,7 +332,7 @@ See also:
       console.log('');
 
       // Setup git branch isolation
-      const gitManager = new GitBranchManager();
+      const gitManager = new GitBranchManager({ branchPrefix: config.branchPrefix });
       const isGitRepo = await gitManager.isGitRepository();
       let branchInfo: { branchName: string; created: boolean; originalBranch: string } | null = null;
 
@@ -347,7 +384,7 @@ See also:
 
       // Create agent and engine with context configuration
       const agent = new CopilotAgent({
-        model: options.model ?? 'gpt-4',
+        model,
         maxTokensPerRequest: 4096,
       });
 
@@ -379,7 +416,7 @@ See also:
 
       // Create checkpoint manager for auto-commits
       const checkpointManager = new CheckpointManager({
-        autoCommit: options.noCommit !== true,
+        autoCommit: config.autoCommit,
       });
 
       // Create file safeguard manager
@@ -389,7 +426,7 @@ See also:
       await fileSafeguard.initialize();
 
       // Setup signal handlers for graceful shutdown
-      setupSignalHandlers(engine);
+      const cleanupSignalHandlers = setupSignalHandlers(engine);
 
       // Setup event listeners
       const events = engine.getEvents();
@@ -444,6 +481,8 @@ See also:
       const loopSpinner = spinner('Running agentic loop...');
       loopSpinner.start();
 
+      let exitCode = 0;
+
       try {
         const finalState = await engine.start(task);
 
@@ -477,12 +516,19 @@ See also:
             await planManager.failTask(task.id);
           }
           error('Loop failed');
-          process.exit(1);
+          exitCode = 1;
         }
       } catch (err) {
         loopSpinner.fail('Loop failed');
         error(err instanceof Error ? err.message : String(err));
-        process.exit(1);
+        exitCode = 1;
+      } finally {
+        cleanupSignalHandlers();
+        await agent.destroy();
+      }
+
+      if (exitCode !== 0) {
+        process.exit(exitCode);
       }
     });
 }

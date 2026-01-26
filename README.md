@@ -107,13 +107,14 @@ ghcralph run --task "Refactor auth middleware to reduce duplication"
 
 ### Run from a local Markdown plan
 ```bash
-ghcralph run --plan TODO.md
+ghcralph run --file TODO.md
 ```
 
 ### Run tasks from GitHub Issues
 ```bash
 ghcralph init --github
-ghcralph run --github owner/repo --label "ready"
+# Configure githubRepo (and optional filters) via .ghcralph/config.json
+ghcralph run --github
 ```
 
 ## Usage
@@ -144,17 +145,17 @@ ghcralph run --task "Add input validation to the login form"
 ghcralph run --file tasks/add-validation.md
 
 # Tasks from a Markdown plan file
-ghcralph run --plan TODO.md
+ghcralph run --file TODO.md
 
-# Tasks from GitHub Issues
-ghcralph run --github owner/repo --label "ready"
+# Tasks from GitHub Issues (configured via .ghcralph/config.json)
+ghcralph run --github
 ```
 
 ### Advanced Run Options
 
 ```bash
-# Control iterations and tokens
-ghcralph run --task "Refactor auth" --max-iterations 20 --max-tokens 50000
+# Control iterations, tokens, and model via configuration
+# (set maxIterations / maxTokens / defaultModel in .ghcralph/config.json)
 
 # Specify context files
 ghcralph run --task "Fix tests" --context "src/**/*.test.ts"
@@ -192,6 +193,9 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 | `autoCommit`    | `true`      | Auto-commit after iterations                          |
 | `branchPrefix`  | `ghcralph/` | Prefix for GitHub Copilot Ralph branches              |
 | `githubRepo`    | -           | GitHub repository (owner/repo) for GitHub plan source |
+| `githubLabel`   | -           | Default GitHub issue label filter for GitHub plan      |
+| `githubMilestone` | -         | Default GitHub issue milestone filter for GitHub plan  |
+| `githubAssignee` | -          | Default GitHub issue assignee filter for GitHub plan   |
 | `localPlanFile` | -           | Path to local plan file                               |
 
 ### Environment Variables
@@ -205,6 +209,10 @@ export GHCRALPH_DEFAULT_MODEL=gpt-4.1
 export GHCRALPH_AUTO_COMMIT=true
 export GHCRALPH_BRANCH_PREFIX=ghcralph/
 export GHCRALPH_PLAN_SOURCE=local
+export GHCRALPH_GITHUB_REPO=owner/repo
+export GHCRALPH_GITHUB_LABEL=ralph-ready
+export GHCRALPH_GITHUB_MILESTONE=v1.0
+export GHCRALPH_GITHUB_ASSIGNEE=octocat
 ```
 
 ### Example Configuration File
@@ -217,7 +225,10 @@ export GHCRALPH_PLAN_SOURCE=local
   "defaultModel": "gpt-4.1",
   "autoCommit": true,
   "branchPrefix": "ghcralph/",
-  "githubRepo": "owner/repo"
+  "githubRepo": "owner/repo",
+  "githubLabel": "ralph-ready",
+  "githubMilestone": "v1.0",
+  "githubAssignee": "octocat"
 }
 ```
 
@@ -288,7 +299,7 @@ gh auth login
 ```
 
 ### "Maximum iterations reached"
-Increase the limit: `--max-iterations 20`  
+Increase the limit: set `maxIterations` in `.ghcralph/config.json` (or `GHCRALPH_MAX_ITERATIONS`).  
 Or for very long tasks: `--unlimited`
 
 ### Progress seems stuck

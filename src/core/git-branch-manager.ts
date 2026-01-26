@@ -184,6 +184,21 @@ export class GitBranchManager {
       debug(`Created and switched to branch: ${branchName}`);
       return true;
     } catch (err) {
+      // Some repos have failing hooks (e.g. Git LFS hooks when git-lfs isn't installed)
+      // but the branch may still have been created and checked out.
+      try {
+        const current = await this.getCurrentBranch();
+        if (current.name === branchName) {
+          warn(
+            `Branch '${branchName}' was created, but a git hook failed during checkout. ` +
+              `If you use Git LFS, install git-lfs or disable the failing hook.`
+          );
+          return true;
+        }
+      } catch {
+        // ignore and surface original error
+      }
+
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to create branch: ${message}`);
     }
@@ -198,6 +213,19 @@ export class GitBranchManager {
       debug(`Switched to branch: ${branchName}`);
       return true;
     } catch (err) {
+      try {
+        const current = await this.getCurrentBranch();
+        if (current.name === branchName) {
+          warn(
+            `Switched to '${branchName}', but a git hook failed during checkout. ` +
+              `If you use Git LFS, install git-lfs or disable the failing hook.`
+          );
+          return true;
+        }
+      } catch {
+        // ignore and surface original error
+      }
+
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Failed to switch branch: ${message}`);
     }

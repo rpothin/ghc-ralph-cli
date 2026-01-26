@@ -42,7 +42,7 @@ node ../../../bin/ghcralph.js init --local
 
 ```bash
 # Execute the plan to create calculator.sh
-node ../../../bin/ghcralph.js run --plan PLAN.md --force
+node ../../../bin/ghcralph.js run --file PLAN.md --force
 ```
 
 ### Step 4: Validate the output

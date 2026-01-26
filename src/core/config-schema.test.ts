@@ -33,6 +33,9 @@ describe('Config Schema', () => {
       expect(isValidConfigKey('autoCommit')).toBe(true);
       expect(isValidConfigKey('branchPrefix')).toBe(true);
       expect(isValidConfigKey('githubRepo')).toBe(true);
+      expect(isValidConfigKey('githubLabel')).toBe(true);
+      expect(isValidConfigKey('githubMilestone')).toBe(true);
+      expect(isValidConfigKey('githubAssignee')).toBe(true);
       expect(isValidConfigKey('mcpServers')).toBe(true);
     });
 
@@ -70,6 +73,9 @@ describe('Config Schema', () => {
       expect(validateConfigValue('defaultModel', 'gpt-4.1').valid).toBe(true);
       expect(validateConfigValue('branchPrefix', 'feature/').valid).toBe(true);
       expect(validateConfigValue('githubRepo', 'owner/repo').valid).toBe(true);
+      expect(validateConfigValue('githubLabel', 'my-label').valid).toBe(true);
+      expect(validateConfigValue('githubMilestone', 'v1.0').valid).toBe(true);
+      expect(validateConfigValue('githubAssignee', 'octocat').valid).toBe(true);
       expect(validateConfigValue('defaultModel', 123 as unknown as string).valid).toBe(false);
     });
   });
@@ -103,6 +109,9 @@ describe('Config Schema', () => {
         'autoCommit',
         'branchPrefix',
         'githubRepo',
+        'githubLabel',
+        'githubMilestone',
+        'githubAssignee',
         'localPlanFile',
         'promptTemplate',
         'mcpServers',

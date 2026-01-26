@@ -43,6 +43,12 @@ export interface RalphConfiguration {
   branchPrefix: string;
   /** GitHub repository (owner/repo) for GitHub plan source */
   githubRepo?: string;
+  /** Default GitHub issue label filter for GitHub plan source */
+  githubLabel?: string;
+  /** Default GitHub issue milestone filter for GitHub plan source */
+  githubMilestone?: string;
+  /** Default GitHub issue assignee filter for GitHub plan source */
+  githubAssignee?: string;
   /** Local plan file path for local plan source */
   localPlanFile?: string;
   /** Custom prompt template */
@@ -74,6 +80,9 @@ export const CONFIG_KEYS = [
   'autoCommit',
   'branchPrefix',
   'githubRepo',
+  'githubLabel',
+  'githubMilestone',
+  'githubAssignee',
   'localPlanFile',
   'promptTemplate',
   'mcpServers',
@@ -115,6 +124,9 @@ export function validateConfigValue(
     case 'defaultModel':
     case 'branchPrefix':
     case 'githubRepo':
+    case 'githubLabel':
+    case 'githubMilestone':
+    case 'githubAssignee':
     case 'localPlanFile':
       if (typeof value !== 'string') {
         return { valid: false, error: `${key} must be a string` };

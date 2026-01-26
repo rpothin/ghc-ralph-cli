@@ -190,30 +190,8 @@ export class CopilotAgent {
     let responseContent = '';
 
     try {
-      // Create a promise that resolves when the session becomes idle
-      const done = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new CopilotError('Session timeout', 'TIMEOUT', true));
-        }, 120000); // 2 minute timeout
-
-        this.session?.on((event) => {
-          if (event.type === 'assistant.message') {
-            responseContent += event.data.content ?? '';
-          } else if (event.type === 'session.idle') {
-            clearTimeout(timeout);
-            resolve();
-          } else if (event.type === 'session.error') {
-            clearTimeout(timeout);
-            reject(new CopilotError(event.data.message ?? 'Unknown error', 'SDK_ERROR', true));
-          }
-        });
-      });
-
-      // Send the prompt
-      await this.session.send({ prompt });
-
-      // Wait for completion
-      await done;
+      const response = await this.session.sendAndWait({ prompt }, 120000);
+      responseContent = response?.data.content ?? '';
 
       const completionTokens = estimateTokens(responseContent);
       this.tokenTracker.addUsage(promptTokens, completionTokens);

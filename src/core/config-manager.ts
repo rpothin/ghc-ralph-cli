@@ -66,6 +66,9 @@ function loadEnvConfig(): Partial<RalphConfiguration> {
     [`${ENV_PREFIX}AUTO_COMMIT`]: 'autoCommit',
     [`${ENV_PREFIX}BRANCH_PREFIX`]: 'branchPrefix',
     [`${ENV_PREFIX}GITHUB_REPO`]: 'githubRepo',
+    [`${ENV_PREFIX}GITHUB_LABEL`]: 'githubLabel',
+    [`${ENV_PREFIX}GITHUB_MILESTONE`]: 'githubMilestone',
+    [`${ENV_PREFIX}GITHUB_ASSIGNEE`]: 'githubAssignee',
     [`${ENV_PREFIX}LOCAL_PLAN_FILE`]: 'localPlanFile',
   };
 

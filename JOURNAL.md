@@ -201,6 +201,18 @@
 - Keyword extraction filters common stop words
 - Limits to 5 relevant files and 3 top keywords for efficiency
 
+## 2026-01-26 - Finding 6: Fix first-run branch error + clean shutdown
+
+### Completed
+- Git branch creation/switch now tolerates failing git hooks (e.g. Git LFS hooks when git-lfs is missing) when the branch is actually checked out, and prints guidance instead of hard-failing.
+- Copilot agent execution now uses `session.sendAndWait()` to avoid leaking session event handlers.
+- `ghcralph run` now removes SIGINT/SIGTERM handlers and destroys the Copilot agent before exit.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+
 ## 2026-01-24 - Issue #11: Git Branch Isolation
 
 ### Completed
@@ -1035,6 +1047,26 @@ The Ralph realignment is working! The CLI now:
 
 ## 2026-01-25 - Fix Windows CI test portability
 
+## 2026-01-25 - ghcralph init interactive by default
+
+### Problem
+- `ghcralph init` ran non-interactively by default, writing defaults without confirmation or any chance to change them.
+
+### Root cause
+- `src/commands/init.ts` always wrote the config after computing `planSource`, without any prompt/confirmation flow.
+
+### Fix
+- Added an interactive init flow (TTY only) that:
+  - Shows defaults and asks whether to keep them.
+  - If not, prompts for each configuration entry (with option lists for plan source, model, auto-commit).
+  - Summarizes the final config and asks for confirmation before writing.
+- Keeps non-interactive behavior when stdin/stdout are not TTY or when `--local/--github/--plan-source` are provided.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- Manual smoke check in a temp git repo (interactive + non-interactive)
+
 ## 2026-01-25 - Stabilize Windows checkpoint-manager tests
 
 ### Problem
@@ -1066,3 +1098,131 @@ The Ralph realignment is working! The CLI now:
 - `npm run lint`
 - `npm run typecheck`
 - `npm test`
+
+## 2026-01-25 - ghcralph run: GitHub defaults via config
+
+### Problem
+- When using `ghcralph run --github`, users had to provide `owner/repo` and filters every time.
+
+### Root cause
+- `src/commands/run.ts` did not load `.ghcralph/config.json` / `GHCRALPH_*` defaults for GitHub repo and issue filters.
+
+### Fix
+- Added config keys: `githubLabel`, `githubMilestone`, `githubAssignee` (plus env vars `GHCRALPH_GITHUB_LABEL`, `GHCRALPH_GITHUB_MILESTONE`, `GHCRALPH_GITHUB_ASSIGNEE`).
+- Updated `ghcralph run --github` to accept an optional repo argument and fall back to configured `githubRepo` and default filters.
+- Updated docs and `ghcralph config set` help to include the new keys.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- Manual checks:
+  - `node bin/ghcralph.js run --help` shows `--github [owner/repo]`
+  - `node bin/ghcralph.js run --github --dry-run --force` exits with code 1 when no repo is configured
+
+## 2026-01-25 - ghcralph run: simplify plan vs file
+
+### Problem
+- The `ghcralph run` command exposed both `--file` (single task file) and `--plan` (Markdown plan file), which is confusing since both point at a file path.
+
+### Root cause
+- `src/commands/run.ts` treated task-from-file and plan-from-file as separate modes requiring different flags, instead of routing by file content/type.
+
+### Fix
+- Made `--file` accept either a single task file or a Markdown plan file (auto-detected via checkbox tasks in Markdown).
+- Kept `--plan` as a **deprecated** option (hidden from help) that forces plan parsing for backward compatibility.
+- Updated docs/examples to prefer `ghcralph run --file PLAN.md`.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- Manual checks:
+  - `node bin/ghcralph.js run --help` does not show `--plan`
+  - `node bin/ghcralph.js run --file test/integration/calculator/PLAN.md --dry-run --force` selects a plan task
+  - `node bin/ghcralph.js run --file task.md --dry-run --force` treats a non-plan Markdown file as a one-off task
+
+## 2026-01-25 - ghcralph run: config is the source of truth
+
+### Problem
+- `ghcralph run` exposed CLI flags (`--max-iterations`, `--max-tokens`, `--model`, `--no-commit`, and GitHub repo/filters) that overlap with config keys, making it unclear which values are authoritative.
+
+### Root cause
+- `src/commands/run.ts` hardcoded defaults and accepted per-run overrides instead of consistently loading `.ghcralph/config.json` / `GHCRALPH_*` and using those values.
+
+### Fix
+- Updated `ghcralph run` to load configuration at startup and use it for:
+  - `maxIterations`, `maxTokens`, `defaultModel`, `autoCommit`, `branchPrefix`
+  - GitHub plan source repo + default filters (`githubRepo`, `githubLabel`, `githubMilestone`, `githubAssignee`)
+- Removed config-backed overrides from the `run` command options and help output.
+- Updated README and cookbook examples to show configuring these values via `.ghcralph/config.json` instead of CLI flags.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual check: `node bin/ghcralph.js run --help` no longer lists config-backed override flags
+
+## 2026-01-25 - ghcralph run: remove --plan
+
+### Problem
+- Even as a hidden/deprecated flag, `--plan` is easy to forget and becomes accidental long-term surface area.
+
+### Fix
+- Removed `--plan/-p` from `ghcralph run` entirely; `--file` is the only way to load Markdown plan files (auto-detected).
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual check: `node bin/ghcralph.js run --help` shows no `--plan`
+
+## 2026-01-26 - Finding 5: run dry-run uses configured model
+
+### Problem
+- `ghcralph run --dry-run` used to display a hardcoded/default model (`gpt-4`) instead of the configured `defaultModel`.
+
+### Root cause
+- `ghcralph run` was not consistently loading `.ghcralph/config.json` / `GHCRALPH_*` before printing its run summary.
+
+### Fix
+- `ghcralph run` now loads config at startup and uses `defaultModel` for both dry-run output and real runs.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual smoke test: init a temp repo, set `defaultModel` in `.ghcralph/config.json`, then run `ghcralph run --file PLAN.md --dry-run` and verify the model printed matches config.
+
+## 2026-01-26 - ghcralph init: prompt GitHub config only when planSource=github
+
+### Problem
+- After adding GitHub defaults to configuration (repo/filters), `ghcralph init` did not help users set them up, and local plan users should not be prompted for GitHub details.
+
+### Root cause
+- `src/commands/init.ts` only prompted for generic configuration keys and did not branch on `planSource` to collect GitHub-specific configuration.
+
+### Fix
+- Updated interactive init to:
+  - Prompt for `githubRepo` (required) when `planSource=github`
+  - Optionally prompt for `githubLabel` / `githubMilestone` / `githubAssignee`
+  - Skip all GitHub prompts when `planSource=local`
+- Enhanced init output summary to display GitHub settings when `planSource=github`, and warn if GitHub plan source is selected but `githubRepo` is missing.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- Manual check: `node bin/ghcralph.js init --help`
+
+## 2026-01-26 - Docs/devcontainer: avoid Git LFS requirement
+
+### Problem
+- Some environments install Git LFS hooks (e.g. `.git/hooks/post-checkout`) without ensuring `git-lfs` is available, which can make `git checkout` return a non-zero exit code and confuse first-time `ghcralph run` users.
+
+### Fix
+- Removed `git-lfs` install and `git lfs install` from `.devcontainer/devcontainer.json`.
+- Documented the Git LFS hook error and mitigation steps in `docs/cookbook.md`.
+
+### Validation
+- `npm run typecheck`
+- `npm test`
+- `npm run build`

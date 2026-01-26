@@ -33,8 +33,9 @@ program
 ${dim('Examples:')}
   $ ghcralph init                          # Initialize GitHub Copilot Ralph in your project
   $ ghcralph run --task "Add tests"        # Run a coding loop for a task
-  $ ghcralph run --plan TODO.md            # Execute tasks from a plan file
-  $ ghcralph run --github owner/repo       # Work through GitHub Issues
+  $ ghcralph run --file TODO.md            # Execute tasks from a plan file
+  $ ghcralph run --github                 # Work through GitHub Issues (repo set in config)
+  $ ghcralph config set githubRepo owner/repo
   $ ghcralph status                        # Check current session status
   $ ghcralph rollback --iterations 2       # Undo last 2 iterations
   $ ghcralph config list                   # View current configuration

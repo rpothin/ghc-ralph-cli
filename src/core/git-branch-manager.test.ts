@@ -144,6 +144,28 @@ describe('GitBranchManager', () => {
       const currentBranch = await manager.getCurrentBranch();
       expect(currentBranch.name).toBe('ghcralph/test-new-branch');
     });
+
+    (process.platform === 'win32' ? it.skip : it)(
+      'should not fail when a post-checkout hook fails but branch is created',
+      async () => {
+        // Configure a failing post-checkout hook (simulates missing git-lfs)
+        const hooksDir = path.join(tempDir, '.githooks');
+        await fs.mkdir(hooksDir, { recursive: true });
+        await fs.writeFile(
+          path.join(hooksDir, 'post-checkout'),
+          '#!/bin/sh\necho "This repository is configured for Git LFS but git-lfs was not found on your path."\nexit 1\n'
+        );
+        await execAsync(`chmod +x "${path.join(hooksDir, 'post-checkout')}"`, { cwd: tempDir });
+        await execAsync('git config core.hooksPath .githooks', { cwd: tempDir });
+
+        const branchName = 'ghcralph/hook-failure-branch';
+        const success = await manager.createAndSwitchBranch(branchName);
+        expect(success).toBe(true);
+
+        const currentBranch = await manager.getCurrentBranch();
+        expect(currentBranch.name).toBe(branchName);
+      }
+    );
   });
 
   describe('stashChanges', () => {
