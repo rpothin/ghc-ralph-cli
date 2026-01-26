@@ -1,6 +1,6 @@
 {
   "name": "ghcralph",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GitHub Copilot Ralph - A cross-platform CLI for running autonomous agentic coding loops using the Ralph Wiggum pattern with GitHub Copilot",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
