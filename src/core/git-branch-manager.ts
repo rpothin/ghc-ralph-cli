@@ -381,6 +381,34 @@ export class GitBranchManager {
       return 0;
     }
   }
+
+  /**
+   * Push current branch to remote
+   */
+  async pushToRemote(remote: string = 'origin', force: boolean = false): Promise<boolean> {
+    try {
+      const currentBranch = await this.getCurrentBranch();
+      const forceFlag = force ? '--force-with-lease' : '';
+      await execAsync(`git push ${forceFlag} ${remote} ${currentBranch.name}`.trim(), { cwd: this.config.cwd });
+      debug(`Pushed ${currentBranch.name} to ${remote}`);
+      return true;
+    } catch (err) {
+      warn('Failed to push to remote: ' + (err instanceof Error ? err.message : String(err)));
+      return false;
+    }
+  }
+
+  /**
+   * Check if a remote exists
+   */
+  async hasRemote(remote: string = 'origin'): Promise<boolean> {
+    try {
+      await execAsync(`git remote get-url ${remote}`, { cwd: this.config.cwd });
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**

@@ -284,6 +284,136 @@ export class CheckpointManager {
     
     return this.hardRollbackTo(initialCommit);
   }
+
+  /**
+   * Create a task completion checkpoint commit
+   */
+  async createTaskCheckpoint(
+    taskTitle: string,
+    taskId: string,
+    summary: string
+  ): Promise<Checkpoint | null> {
+    if (!this.config.autoCommit) {
+      debug('Auto-commit disabled, skipping task checkpoint');
+      return null;
+    }
+
+    // Check if there are changes to commit
+    const hasChanges = await this.hasChangesToCommit();
+    if (!hasChanges) {
+      debug('No changes to commit for task checkpoint');
+      return null;
+    }
+
+    // Get list of modified files before staging
+    const filesModified = await this.getModifiedFiles();
+
+    // Stage all changes
+    const staged = await this.stageAllChanges();
+    if (!staged) {
+      return null;
+    }
+
+    // Build commit message for task completion
+    const truncatedTitle = taskTitle.length > 40 
+      ? taskTitle.substring(0, 37) + '...'
+      : taskTitle;
+    
+    const message = `${this.config.messagePrefix} task complete - ${truncatedTitle}`;
+    const fullMessage = `${message}\n\nTask ID: ${taskId}\nSummary: ${summary}\nFiles modified: ${filesModified.length}`;
+
+    try {
+      // Create commit
+      await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+      
+      // Get commit hash
+      const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
+      const commitHash = stdout.trim();
+
+      const checkpoint: Checkpoint = {
+        iteration: 0, // Task-level checkpoint, not iteration-level
+        commitHash,
+        message,
+        filesModified,
+        timestamp: new Date(),
+        tokensUsed: 0,
+      };
+
+      this.checkpoints.push(checkpoint);
+      debug(`Created task checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
+      
+      return checkpoint;
+    } catch (err) {
+      warn('Failed to create task checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
+      return null;
+    }
+  }
+
+  /**
+   * Create a failure checkpoint commit (preserves state for post-mortem)
+   */
+  async createFailureCheckpoint(
+    taskTitle: string,
+    taskId: string,
+    attempt: number,
+    error?: string
+  ): Promise<Checkpoint | null> {
+    if (!this.config.autoCommit) {
+      debug('Auto-commit disabled, skipping failure checkpoint');
+      return null;
+    }
+
+    // Check if there are changes to commit
+    const hasChanges = await this.hasChangesToCommit();
+    if (!hasChanges) {
+      debug('No changes to commit for failure checkpoint');
+      return null;
+    }
+
+    // Get list of modified files before staging
+    const filesModified = await this.getModifiedFiles();
+
+    // Stage all changes
+    const staged = await this.stageAllChanges();
+    if (!staged) {
+      return null;
+    }
+
+    // Build commit message for task failure
+    const truncatedTitle = taskTitle.length > 30 
+      ? taskTitle.substring(0, 27) + '...'
+      : taskTitle;
+    
+    const message = `${this.config.messagePrefix} task failed (attempt ${attempt}) - ${truncatedTitle}`;
+    const errorInfo = error ? `\nError: ${error.substring(0, 200)}` : '';
+    const fullMessage = `${message}\n\nTask ID: ${taskId}\nAttempt: ${attempt}${errorInfo}\nFiles modified: ${filesModified.length}`;
+
+    try {
+      // Create commit
+      await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+      
+      // Get commit hash
+      const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
+      const commitHash = stdout.trim();
+
+      const checkpoint: Checkpoint = {
+        iteration: 0, // Task-level checkpoint
+        commitHash,
+        message,
+        filesModified,
+        timestamp: new Date(),
+        tokensUsed: 0,
+      };
+
+      this.checkpoints.push(checkpoint);
+      debug(`Created failure checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
+      
+      return checkpoint;
+    } catch (err) {
+      warn('Failed to create failure checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
+      return null;
+    }
+  }
 }
 
 /**

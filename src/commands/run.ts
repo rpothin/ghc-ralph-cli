@@ -9,6 +9,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import type { Command } from 'commander';
 import { info, success, error, warn, debug, spinner, heading, code, dim, parseNonNegativeInt } from '../utils/index.js';
+import { waitForKeypress } from '../utils/shell.js';
 import { CopilotAgent } from '../integrations/index.js';
 import {
   LoopEngine,
@@ -34,6 +35,7 @@ export interface RunOptions {
   timeout?: string;
   allowDelete?: boolean;
   dryRun?: boolean;
+  pauseBetweenTasks?: boolean;
 }
 
 /**
@@ -143,6 +145,7 @@ export function registerRunCommand(program: Command): void {
     .option('--timeout <minutes>', 'Maximum duration in minutes')
     .option('--allow-delete', 'Allow deletion of pre-existing files')
     .option('--dry-run', 'Show what would happen without executing')
+    .option('--pause-between-tasks', 'Pause for human review after each task (strict Ralph mode)')
     .addHelpText('after', `
 Config-backed settings (set via .ghcralph/config.json or GHCRALPH_* env vars):
   - maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix
@@ -382,12 +385,6 @@ See also:
         console.log(`  ${dim('Branch:')} ${code(branchInfo.branchName)}`);
       }
 
-      // Create agent and engine with context configuration
-      const agent = new CopilotAgent({
-        model,
-        maxTokensPerRequest: 4096,
-      });
-
       // Build context config, only including contextGlobs if provided
       const contextConfig: {
         contextGlobs?: string[];
@@ -403,14 +400,6 @@ See also:
         contextConfig.contextGlobs = options.context;
       }
 
-      const engine = new LoopEngine(agent, {
-        maxIterations,
-        maxTokens,
-        maxDurationMinutes,
-        allowUnlimited: options.unlimited === true,
-        contextConfig,
-      });
-
       // Create progress tracker
       const progressTracker = new ProgressTracker(undefined, maxIterations);
 
@@ -425,106 +414,267 @@ See also:
       });
       await fileSafeguard.initialize();
 
-      // Setup signal handlers for graceful shutdown
-      const cleanupSignalHandlers = setupSignalHandlers(engine);
-
-      // Setup event listeners
-      const events = engine.getEvents();
       const startTime = new Date();
-
-      events.on('iterationStart', (iteration, state) => {
-        debug(
-          `Iteration ${iteration}/${maxIterations} - Tokens: ${state.tokensUsed.toLocaleString()}`
-        );
-      });
-
-      events.on('iterationEnd', (record, state) => {
-        const status = record.success ? '✓' : '✗';
-        info(
-          `Iteration ${record.iteration}: ${status} (${record.tokensUsed.toLocaleString()} tokens)`
-        );
-        if (record.summary) {
-          console.log(`  ${dim(record.summary)}`);
-        }
-        
-        // Create checkpoint commit after successful iterations
-        if (record.success && checkpointManager.isAutoCommitEnabled()) {
-          checkpointManager
-            .createCheckpoint(record.iteration, record.summary ?? 'iteration complete', record.tokensUsed)
-            .then((checkpoint) => {
-              if (checkpoint) {
-                debug(`Checkpoint created: ${checkpoint.commitHash.substring(0, 7)}`);
-                // Update progress with commit hash
-                state.lastCheckpoint = checkpoint.commitHash;
-              }
-            })
-            .catch(() => {
-              // Ignore checkpoint errors
-            });
-        }
-        
-        // Save progress after each iteration
-        progressTracker.save(state).catch(() => {
-          // Ignore save errors
-        });
-      });
-
-      events.on('error', (err) => {
-        error(`Loop error: ${err.message}`);
-      });
-
-      events.on('warning', (type, message) => {
-        warn(`Warning: ${message}`);
-      });
-
-      // Run the loop
-      const loopSpinner = spinner('Running agentic loop...');
-      loopSpinner.start();
-
       let exitCode = 0;
+      let totalTasksProcessed = 0;
+      let totalTasksCompleted = 0;
+      let totalTasksFailed = 0;
+      const maxRetriesPerTask = config.maxRetriesPerTask ?? 2;
+      const autoPush = config.autoPush ?? false;
 
-      try {
-        const finalState = await engine.start(task);
-
-        loopSpinner.stop();
-        console.log('');
-
-        // Print summary
-        console.log(heading('📊 Summary'));
-        console.log('');
-        console.log(`  ${dim('Status:')} ${finalState.status}`);
-        console.log(`  ${dim('Iterations:')} ${finalState.iteration}/${maxIterations}`);
-        console.log(`  ${dim('Tokens used:')} ${finalState.tokensUsed.toLocaleString()}`);
-        console.log(`  ${dim('Elapsed time:')} ${formatElapsedTime(startTime)}`);
-
-        const successfulIterations = finalState.iterations.filter((i) => i.success).length;
-        console.log(`  ${dim('Successful iterations:')} ${successfulIterations}`);
-
-        console.log('');
-
-        if (finalState.status === 'completed') {
-          // Mark task as complete in plan file if using a plan
-          if (planManager) {
-            await planManager.completeTask(task.id);
-            info(`Task marked as complete in plan file`);
+      // ========== MULTI-TASK ITERATION LOOP ==========
+      // This is the core fix: process ALL tasks in the plan, not just the first one
+      
+      let currentTask: Task | null = task;
+      
+      while (currentTask) {
+        // Capture task in a const for this iteration (helps TypeScript narrowing)
+        const activeTask: Task = currentTask;
+        
+        totalTasksProcessed++;
+        let taskAttempt = 0;
+        let taskCompleted = false;
+        let taskFailed = false;
+        
+        info(`\n📋 Task ${totalTasksProcessed}: ${activeTask.title}`);
+        
+        // Retry loop for the current task (with fresh agent per attempt)
+        while (!taskCompleted && !taskFailed && taskAttempt < maxRetriesPerTask) {
+          taskAttempt++;
+          
+          if (taskAttempt > 1) {
+            info(`\n🔄 Retry ${taskAttempt}/${maxRetriesPerTask} for task: ${activeTask.title}`);
           }
-          success('Loop completed successfully');
-        } else if (finalState.status === 'stopped') {
-          warn('Loop was stopped by user');
-        } else if (finalState.status === 'failed') {
-          if (planManager) {
-            await planManager.failTask(task.id);
+          
+          // Create FRESH agent instance for each attempt (Ralph pattern core principle)
+          const agent = new CopilotAgent({
+            model,
+            maxTokensPerRequest: 4096,
+          });
+
+          const engine = new LoopEngine(agent, {
+            maxIterations,
+            maxTokens,
+            maxDurationMinutes,
+            allowUnlimited: options.unlimited === true,
+            contextConfig,
+          });
+
+          // Setup signal handlers for graceful shutdown
+          const cleanupSignalHandlers = setupSignalHandlers(engine);
+
+          // Setup event listeners
+          const events = engine.getEvents();
+
+          events.on('iterationStart', (iteration, state) => {
+            debug(
+              `Iteration ${iteration}/${maxIterations} - Tokens: ${state.tokensUsed.toLocaleString()}`
+            );
+          });
+
+          events.on('iterationEnd', (record, state) => {
+            const status = record.success ? '✓' : '✗';
+            info(
+              `Iteration ${record.iteration}: ${status} (${record.tokensUsed.toLocaleString()} tokens)`
+            );
+            if (record.summary) {
+              console.log(`  ${dim(record.summary)}`);
+            }
+            
+            // Create checkpoint commit after successful iterations
+            if (record.success && checkpointManager.isAutoCommitEnabled()) {
+              checkpointManager
+                .createCheckpoint(record.iteration, record.summary ?? 'iteration complete', record.tokensUsed)
+                .then((checkpoint) => {
+                  if (checkpoint) {
+                    debug(`Checkpoint created: ${checkpoint.commitHash.substring(0, 7)}`);
+                    // Update progress with commit hash
+                    state.lastCheckpoint = checkpoint.commitHash;
+                  }
+                })
+                .catch(() => {
+                  // Ignore checkpoint errors
+                });
+            }
+            
+            // Save progress after each iteration
+            progressTracker.save(state).catch(() => {
+              // Ignore save errors
+            });
+          });
+
+          events.on('error', (err) => {
+            error(`Loop error: ${err.message}`);
+          });
+
+          events.on('warning', (type, message) => {
+            warn(`Warning: ${message}`);
+          });
+
+          // Run the loop for this task
+          const loopSpinner = spinner('Running agentic loop...');
+          loopSpinner.start();
+
+          try {
+            const finalState = await engine.start(activeTask);
+
+            loopSpinner.stop();
+            console.log('');
+
+            // Print iteration summary
+            console.log(`  ${dim('Status:')} ${finalState.status}`);
+            console.log(`  ${dim('Iterations:')} ${finalState.iteration}/${maxIterations}`);
+            console.log(`  ${dim('Tokens used:')} ${finalState.tokensUsed.toLocaleString()}`);
+
+            const successfulIterations = finalState.iterations.filter((i) => i.success).length;
+            console.log(`  ${dim('Successful iterations:')} ${successfulIterations}`);
+            console.log('');
+
+            if (finalState.status === 'completed') {
+              taskCompleted = true;
+              
+              // Mark task as complete in plan file if using a plan
+              if (planManager) {
+                await planManager.completeTask(activeTask.id);
+                info(`Task marked as complete in plan file`);
+              }
+              
+              // Document result in progress file
+              await progressTracker.appendTaskResult(
+                activeTask,
+                'completed',
+                taskAttempt,
+                `Completed in ${finalState.iteration} iterations`
+              );
+              
+              // Create a task-level checkpoint commit
+              await checkpointManager.createTaskCheckpoint(
+                activeTask.title,
+                activeTask.id,
+                `Task completed in ${finalState.iteration} iterations`
+              );
+              
+              // Push to remote if configured
+              if (autoPush && isGitRepo) {
+                info('Pushing changes to remote...');
+                const pushed = await gitManager.pushToRemote();
+                if (pushed) {
+                  success('Changes pushed to remote');
+                }
+              }
+              
+              success(`✓ Task completed: ${activeTask.title}`);
+              totalTasksCompleted++;
+              
+            } else if (finalState.status === 'stopped') {
+              // User requested stop - exit the entire run
+              warn('Loop was stopped by user');
+              
+              // Document the stop
+              await progressTracker.appendTaskResult(
+                activeTask,
+                'stuck',
+                taskAttempt,
+                'Stopped by user'
+              );
+              
+              // Exit the multi-task loop
+              currentTask = null;
+              continue;
+              
+            } else if (finalState.status === 'failed') {
+              warn(`✗ Task attempt ${taskAttempt} failed: ${activeTask.title}`);
+              
+              // Document failure for learning
+              await progressTracker.appendTaskResult(
+                activeTask,
+                'failed',
+                taskAttempt,
+                'Loop execution failed'
+              );
+              
+              // Create failure checkpoint
+              await checkpointManager.createFailureCheckpoint(
+                activeTask.title,
+                activeTask.id,
+                taskAttempt,
+                'Loop execution failed'
+              );
+            }
+          } catch (err) {
+            loopSpinner.fail('Loop failed');
+            const errMsg = err instanceof Error ? err.message : String(err);
+            error(errMsg);
+            
+            // Document failure
+            await progressTracker.appendTaskResult(
+              activeTask,
+              'failed',
+              taskAttempt,
+              undefined,
+              errMsg
+            );
+            
+            // Create failure checkpoint
+            await checkpointManager.createFailureCheckpoint(
+              activeTask.title,
+              activeTask.id,
+              taskAttempt,
+              errMsg
+            );
+          } finally {
+            cleanupSignalHandlers();
+            await agent.destroy();
           }
-          error('Loop failed');
+        }
+        
+        // Check if all retries exhausted without completion
+        if (!taskCompleted && currentTask) {
+          taskFailed = true;
+          totalTasksFailed++;
+          
+          if (planManager) {
+            await planManager.failTask(activeTask.id);
+          }
+          
+          error(`❌ Task failed after ${maxRetriesPerTask} attempts: ${activeTask.title}`);
           exitCode = 1;
         }
-      } catch (err) {
-        loopSpinner.fail('Loop failed');
-        error(err instanceof Error ? err.message : String(err));
-        exitCode = 1;
-      } finally {
-        cleanupSignalHandlers();
-        await agent.destroy();
+        
+        // Optional pause for human review (strict Ralph mode)
+        if (options.pauseBetweenTasks && planManager && !taskFailed) {
+          console.log('');
+          info('Press any key to continue to next task, or Ctrl+C to stop...');
+          await waitForKeypress();
+        }
+        
+        // Get next task from the plan (if using a plan)
+        if (planManager) {
+          // Reload plan file to pick up any external changes
+          await planManager.reload?.();
+          currentTask = await planManager.getNextTask();
+        } else {
+          // Single task mode (--task flag) - exit after one task
+          currentTask = null;
+        }
+      }
+      
+      // ========== FINAL SUMMARY ==========
+      console.log('');
+      console.log(heading('📊 Final Summary'));
+      console.log('');
+      console.log(`  ${dim('Total tasks processed:')} ${totalTasksProcessed}`);
+      console.log(`  ${dim('Tasks completed:')} ${totalTasksCompleted}`);
+      console.log(`  ${dim('Tasks failed:')} ${totalTasksFailed}`);
+      console.log(`  ${dim('Elapsed time:')} ${formatElapsedTime(startTime)}`);
+      console.log('');
+      
+      if (totalTasksFailed === 0 && totalTasksCompleted > 0) {
+        success(`🎉 All ${totalTasksCompleted} tasks completed successfully!`);
+      } else if (totalTasksCompleted > 0) {
+        warn(`Completed ${totalTasksCompleted} tasks, ${totalTasksFailed} failed`);
+      } else if (totalTasksProcessed === 0) {
+        success('No pending tasks found - all tasks are complete!');
       }
 
       if (exitCode !== 0) {

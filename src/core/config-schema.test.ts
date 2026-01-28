@@ -115,6 +115,8 @@ describe('Config Schema', () => {
         'localPlanFile',
         'promptTemplate',
         'mcpServers',
+        'maxRetriesPerTask',
+        'autoPush',
       ];
       expect(CONFIG_KEYS).toEqual(expectedKeys);
     });

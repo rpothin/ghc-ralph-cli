@@ -33,10 +33,37 @@ const DEFAULT_PROMPT_TEMPLATE = `You are an expert software engineer. Your task 
 
 {output_format}
 
+{honesty_guidance}
+
 ## Instructions
 - Make small, focused changes
 - Test your changes with [ACTION:EXECUTE]
 - Use [ACTION:COMPLETE] when tests pass and task is done`;
+
+/**
+ * Honesty guidance section to encourage accurate reporting and graceful failure handling
+ */
+const HONESTY_GUIDANCE = `## Failure Handling & Honesty
+
+**IMPORTANT**: Be honest about your progress and limitations.
+
+- If you **cannot complete** the task, do NOT use [ACTION:COMPLETE]
+- Instead, document what you tried and why it failed
+- Use [ACTION:EXECUTE] to verify your work before claiming completion
+- If tests fail or you encounter blocking issues, report them honestly
+
+**When you cannot proceed**, respond with:
+\`\`\`
+[ACTION:STUCK]
+attempted: <what you tried>
+blocker: <what is preventing completion>
+suggestion: <what might help - different approach, human intervention, etc.>
+\`\`\`
+
+This honest reporting helps:
+1. The next agent attempt learn from your experience
+2. Humans understand what went wrong
+3. The progress document serve as accurate documentation`;
 
 /**
  * Legacy prompt template with meta info (for backwards compatibility)
@@ -242,7 +269,8 @@ export class ContextBuilder {
       .replace('{context_section}', contextSection)
       .replace('{previous_progress}', previousProgress)
       .replace('{feedback_section}', feedbackSection ?? '')
-      .replace('{output_format}', outputFormat);
+      .replace('{output_format}', outputFormat)
+      .replace('{honesty_guidance}', HONESTY_GUIDANCE);
 
     // Clean up multiple consecutive newlines
     prompt = prompt.replace(/\n{3,}/g, '\n\n').trim();

@@ -17,6 +17,7 @@ import type {
   DeleteAction,
   ExecuteAction,
   CompleteAction,
+  StuckAction,
   ParseResult,
 } from './response-parser.js';
 
@@ -50,6 +51,14 @@ export interface ExecutionResult {
   taskComplete: boolean;
   /** Completion reason if task is complete */
   completionReason?: string;
+  /** Whether a STUCK action was found */
+  taskStuck: boolean;
+  /** Stuck details if task is stuck */
+  stuckDetails?: {
+    attempted: string;
+    blocker: string;
+    suggestion?: string;
+  };
   /** Summary of executed actions */
   summary: string;
 }
@@ -93,6 +102,8 @@ export class ActionExecutor {
     const results: ActionResult[] = [];
     let taskComplete = false;
     let completionReason: string | undefined;
+    let taskStuck = false;
+    let stuckDetails: { attempted: string; blocker: string; suggestion?: string } | undefined;
 
     for (const action of parseResult.actions) {
       const result = await this.executeAction(action);
@@ -103,8 +114,20 @@ export class ActionExecutor {
         completionReason = (action as CompleteAction).reason;
       }
 
-      // Stop on first failure (except for COMPLETE which is informational)
-      if (!result.success && action.type !== 'COMPLETE') {
+      if (action.type === 'STUCK' && result.success) {
+        taskStuck = true;
+        const stuckAction = action as StuckAction;
+        stuckDetails = {
+          attempted: stuckAction.attempted,
+          blocker: stuckAction.blocker,
+        };
+        if (stuckAction.suggestion) {
+          stuckDetails.suggestion = stuckAction.suggestion;
+        }
+      }
+
+      // Stop on first failure (except for COMPLETE/STUCK which are informational)
+      if (!result.success && action.type !== 'COMPLETE' && action.type !== 'STUCK') {
         warn(`Action failed: ${result.error}`);
         // Continue with remaining actions? For now, we'll continue
       }
@@ -117,11 +140,16 @@ export class ActionExecutor {
       results,
       allSucceeded,
       taskComplete,
+      taskStuck,
       summary,
     };
 
     if (completionReason) {
       executionResult.completionReason = completionReason;
+    }
+
+    if (stuckDetails) {
+      executionResult.stuckDetails = stuckDetails;
     }
 
     return executionResult;
@@ -153,6 +181,8 @@ export class ActionExecutor {
           return await this.executeCommand(action);
         case 'COMPLETE':
           return this.executeComplete(action);
+        case 'STUCK':
+          return this.executeStuck(action);
         default:
           return {
             action,
@@ -350,6 +380,22 @@ export class ActionExecutor {
       action,
       success: true,
       message: `Task marked complete: ${action.reason}`,
+    };
+  }
+
+  /**
+   * Execute a STUCK action (signals inability to proceed)
+   */
+  private executeStuck(action: StuckAction): ActionResult {
+    warn(`Agent stuck: ${action.blocker}`);
+    info(`  Attempted: ${action.attempted}`);
+    if (action.suggestion) {
+      info(`  Suggestion: ${action.suggestion}`);
+    }
+    return {
+      action,
+      success: true, // STUCK is a valid action, not a failure
+      message: `Agent stuck - blocker: ${action.blocker}`,
     };
   }
 

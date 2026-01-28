@@ -21,6 +21,30 @@ export interface ShellInfo {
 }
 
 /**
+ * Wait for any keypress from stdin.
+ * Used for --pause-between-tasks mode (strict Ralph pattern).
+ */
+export async function waitForKeypress(): Promise<void> {
+  return new Promise((resolve) => {
+    // Check if stdin is a TTY
+    if (!process.stdin.isTTY) {
+      // Non-interactive mode - just continue
+      resolve();
+      return;
+    }
+
+    const wasRaw = process.stdin.isRaw;
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.once('data', () => {
+      process.stdin.setRawMode(wasRaw);
+      process.stdin.pause();
+      resolve();
+    });
+  });
+}
+
+/**
  * Detect the current shell environment
  */
 export function detectShell(): ShellInfo {
