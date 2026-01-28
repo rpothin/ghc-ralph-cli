@@ -38,7 +38,9 @@ const DEFAULT_PROMPT_TEMPLATE = `You are an expert software engineer. Your task 
 ## Instructions
 - Make small, focused changes
 - Test your changes with [ACTION:EXECUTE]
-- Use [ACTION:COMPLETE] when tests pass and task is done`;
+- Use [ACTION:COMPLETE] when tests pass and task is done
+
+{commit_message_guidelines}`;
 
 /**
  * Honesty guidance section to encourage accurate reporting and graceful failure handling.
@@ -75,6 +77,38 @@ suggestion: <what might help - different approach, human intervention, etc.>
 
 IMPORTANT: Honest [ACTION:STUCK] reporting enables retry with fresh context.
 False [ACTION:COMPLETE] claims hide problems and compound technical debt.`;
+
+/**
+ * Commit message guidelines for agent responses.
+ * Encourages the agent to provide quality commit messages in a structured block.
+ */
+const COMMIT_MESSAGE_GUIDELINES = `## Commit Message Guidelines
+
+Each response SHOULD include a commit message block:
+
+\`\`\`
+[COMMIT_MESSAGE]
+<your commit message here>
+[/COMMIT_MESSAGE]
+\`\`\`
+
+**Rules:**
+- Maximum 50 characters
+- Use imperative mood ("Add", "Fix", "Update" not "Added", "Fixed")
+- Be specific about what changed
+- No periods at the end
+- If task is complete, describe the accomplishment
+- If in progress, describe the action taken
+
+**Good examples:**
+- "Add division operation with zero check"
+- "Fix off-by-one error in loop counter"
+- "Update calculator to handle decimals"
+
+**Bad examples:**
+- "I'll check the calculator" (conversational)
+- "Made some changes" (vague)
+- "Fixed the thing that was broken." (period, vague)`;
 
 /**
  * Legacy prompt template with meta info (for backwards compatibility)
@@ -281,7 +315,8 @@ export class ContextBuilder {
       .replace('{previous_progress}', previousProgress)
       .replace('{feedback_section}', feedbackSection ?? '')
       .replace('{output_format}', outputFormat)
-      .replace('{honesty_guidance}', HONESTY_GUIDANCE);
+      .replace('{honesty_guidance}', HONESTY_GUIDANCE)
+      .replace('{commit_message_guidelines}', COMMIT_MESSAGE_GUIDELINES);
 
     // Clean up multiple consecutive newlines
     prompt = prompt.replace(/\n{3,}/g, '\n\n').trim();

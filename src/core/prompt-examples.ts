@@ -69,6 +69,13 @@ blocker: Bash case syntax requires specific quoting for * character that conflic
 suggestion: Consider using a different operator syntax or escaping approach - may need human review`;
 
 /**
+ * Example of COMMIT_MESSAGE block for git commit summaries
+ */
+export const COMMIT_MESSAGE_EXAMPLE = `[COMMIT_MESSAGE]
+Add division operation with error handling
+[/COMMIT_MESSAGE]`;
+
+/**
  * All examples combined for inclusion in prompts
  */
 export const ALL_EXAMPLES = `
@@ -86,6 +93,9 @@ ${COMPLETE_EXAMPLE}
 
 ### Example: Report when stuck (be honest if you can't complete!)
 ${STUCK_EXAMPLE}
+
+### Example: Commit message for the iteration
+${COMMIT_MESSAGE_EXAMPLE}
 `;
 
 /**
@@ -171,12 +181,20 @@ blocker: <what prevents completion>
 suggestion: <what might help>
 \`\`\`
 
+**[COMMIT_MESSAGE]** - Provide commit message for this iteration
+\`\`\`
+[COMMIT_MESSAGE]
+<max 50 chars, imperative mood, specific>
+[/COMMIT_MESSAGE]
+\`\`\`
+
 ## Important Rules
 1. Use EXACT text for [OLD] blocks - must match file contents precisely
 2. Use [ACTION:EXECUTE] to run tests before marking complete
 3. Only use [ACTION:COMPLETE] when ALL tests pass with exit code 0
 4. Use [ACTION:STUCK] if you cannot complete - honesty is critical!
 5. One action per block - you can include multiple blocks
+6. Include a [COMMIT_MESSAGE] block to summarize what you did
 `;
 
 /**

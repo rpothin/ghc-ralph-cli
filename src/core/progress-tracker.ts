@@ -393,23 +393,27 @@ export class ProgressTracker {
       md += `- **Duration**: ${Math.floor(duration / 1000)}s\n`;
     }
 
-    // Full verbosity: include raw response if available
-    if (this.verbosity === 'full' && iter.rawResponse) {
-      md += `\n**Agent Response**:\n`;
-      md += `> ${iter.rawResponse.replace(/\n/g, '\n> ')}\n`;
-    }
-
-    // Full verbosity: include actions executed if available
-    if (this.verbosity === 'full' && iter.actions && iter.actions.length > 0) {
-      md += `\n**Actions Executed**:\n`;
+    // Standard+ verbosity: include actions executed if available
+    if ((this.verbosity === 'standard' || this.verbosity === 'full') && iter.actions && iter.actions.length > 0) {
+      md += `\n**Actions**:\n`;
       for (const action of iter.actions) {
         const actionStatus = action.success ? '✓' : '✗';
-        md += `${actionStatus} [${action.type}]`;
+        md += `- ${actionStatus} \`[${action.type}]\``;
         if (action.summary) {
-          md += ` ${action.summary}`;
+          // Truncate long summaries
+          const truncated = action.summary.length > 60
+            ? action.summary.substring(0, 57) + '...'
+            : action.summary;
+          md += ` ${truncated}`;
         }
         md += '\n';
       }
+    }
+
+    // Full verbosity only: include raw response
+    if (this.verbosity === 'full' && iter.rawResponse) {
+      md += `\n**Agent Response**:\n`;
+      md += `\`\`\`\n${iter.rawResponse}\n\`\`\`\n`;
     }
 
     md += `\n`;

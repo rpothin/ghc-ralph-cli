@@ -1540,3 +1540,95 @@ Reviewed and updated all documentation to align with v0.1.3 changes.
 ### Validation
 - `npm run typecheck` ✅
 - `npm test` ✅ (311 tests passing)
+
+## 2026-01-28 - v0.1.4 Remediation Implementation
+
+### Context
+After testing v0.1.3 in the ghc-ralph-cli-demo repository, we identified 4 issues requiring remediation:
+1. **Commit Message Quality**: Preamble leaking ("I'll check...") and mid-word truncation
+2. **Progress Verbosity**: Config not applied; standard verbosity showed minimal info
+3. **Progress File Persistence**: Only last task visible; previous tasks lost on each save
+4. **Auto-Push**: No CLI flag to enable push for a single run
+
+### Issue 1: Commit Message Quality (RESOLVED)
+
+**Problem**: Commit messages contained conversational preambles and were truncated mid-word.
+
+**Solution**: Introduced explicit `[COMMIT_MESSAGE]` block in agent prompts.
+
+**Changes Made**:
+- `src/core/prompt-examples.ts`:
+  - Added `COMMIT_MESSAGE_EXAMPLE` constant
+  - Updated `FORMAT_INSTRUCTIONS` with `[COMMIT_MESSAGE]` block documentation
+  - Added commit message example to `ALL_EXAMPLES`
+- `src/core/context-builder.ts`:
+  - Added `COMMIT_MESSAGE_GUIDELINES` constant with formatting rules
+  - Updated prompt template to include `{commit_message_guidelines}` placeholder
+  - Added replacement logic in `buildContext()` method
+- `src/core/loop-engine.ts`:
+  - Completely rewrote `extractSummary()` with priority-based extraction:
+    1. `[COMMIT_MESSAGE]` block (preferred)
+    2. `[ACTION:COMPLETE]` reason (fallback)
+    3. First action type with context (fallback)
+    4. First non-preamble line (last resort)
+  - Added `truncateAtWord()` helper for word-boundary truncation
+- `src/core/checkpoint-manager.ts`:
+  - Added `truncateAtWord()` helper function
+  - Replaced character-based truncation with word-boundary truncation
+
+### Issue 2: Progress Verbosity (RESOLVED)
+
+**Problem**: `progressVerbosity` config was ignored; `rawResponse` and `actions` never populated.
+
+**Solution**: Capture data in loop engine and differentiate verbosity levels in formatter.
+
+**Changes Made**:
+- `src/core/loop-engine.ts`:
+  - After `completeIteration()`, attach `rawResponse` and `actions` to the record
+  - Actions derived from `executionResult.results` with type, success, summary
+- `src/core/progress-tracker.ts`:
+  - Updated `formatIteration()` to show actions for `standard` and `full` verbosity
+  - Moved raw response output to `full` verbosity only
+  - Changed actions format to use bullet points with backtick-wrapped types
+
+### Issue 3: Progress File Persistence (RESOLVED)
+
+**Problem**: `save()` overwrote entire file each iteration, losing previous task history.
+
+**Solution**: Wire up the existing session-based architecture that was implemented but unused.
+
+**Changes Made**:
+- `src/commands/run.ts`:
+  - Added import for `createInitialState` and `FullLoopState` types
+  - Called `progressTracker.startSession()` after tracker creation
+  - Replaced `progressTracker.save()` with `progressTracker.setCurrentTask()` in iterationEnd
+  - Replaced all `appendTaskResult()` calls with `recordTaskCompletion()`
+  - Created minimal error state for exception catch block
+
+### Issue 4: Auto-Push CLI Flag (RESOLVED)
+
+**Problem**: No way to enable push for a single run without config change.
+
+**Solution**: Added `--push` flag that overrides config setting.
+
+**Changes Made**:
+- `src/commands/run.ts`:
+  - Added `push?: boolean` to `RunOptions` interface
+  - Added `.option('--push', 'Push changes to remote after completion')`
+  - Updated autoPush logic: `options.push === true || (config.autoPush ?? false)`
+  - Added informational message when push is disabled but changes were made
+  - Added example in help text: `$ ghcralph run --file PLAN.md --push`
+
+### Files Modified
+- `src/core/prompt-examples.ts` - COMMIT_MESSAGE block and examples
+- `src/core/context-builder.ts` - Commit message guidelines
+- `src/core/loop-engine.ts` - extractSummary rewrite, rawResponse/actions capture
+- `src/core/checkpoint-manager.ts` - Word-boundary truncation
+- `src/core/progress-tracker.ts` - Standard verbosity actions display
+- `src/commands/run.ts` - Session-based tracking, --push flag
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (311 tests passing)
+- Version bumped to 0.1.4

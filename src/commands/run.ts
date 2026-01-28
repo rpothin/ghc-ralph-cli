@@ -20,8 +20,10 @@ import {
   CheckpointManager,
   FileSafeguardManager,
   ConfigManager,
+  createInitialState,
   type PlanManager,
   type TaskContext,
+  type FullLoopState,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
 
@@ -37,6 +39,7 @@ export interface RunOptions {
   allowDelete?: boolean;
   dryRun?: boolean;
   pauseBetweenTasks?: boolean;
+  push?: boolean;
 }
 
 /**
@@ -147,6 +150,7 @@ export function registerRunCommand(program: Command): void {
     .option('--allow-delete', 'Allow deletion of pre-existing files')
     .option('--dry-run', 'Show what would happen without executing')
     .option('--pause-between-tasks', 'Pause for human review after each task (strict Ralph mode)')
+    .option('--push', 'Push changes to remote after completion')
     .addHelpText('after', `
 Config-backed settings (set via .ghcralph/config.json or GHCRALPH_* env vars):
   - maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix
@@ -159,6 +163,7 @@ Examples:
   $ ghcralph run --github
   $ ghcralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
   $ ghcralph run --task "Large refactor" --unlimited --timeout 60
+  $ ghcralph run --file PLAN.md --push
 
 See also:
   ghcralph status     View current session progress
@@ -422,7 +427,7 @@ See also:
       let totalTasksCompleted = 0;
       let totalTasksFailed = 0;
       const maxRetriesPerTask = config.maxRetriesPerTask ?? 2;
-      const autoPush = config.autoPush ?? false;
+      const autoPush = options.push === true || (config.autoPush ?? false);
       const pushStrategy = config.pushStrategy ?? 'per-task';
 
       // Compute total tasks count for commit message context (if available)
@@ -436,6 +441,9 @@ See also:
           totalTasksInPlan = 0;
         }
       }
+
+      // Initialize progress session for multi-task tracking
+      progressTracker.startSession(branchInfo?.branchName, totalTasksInPlan || undefined);
 
       // ========== MULTI-TASK ITERATION LOOP ==========
       // This is the core fix: process ALL tasks in the plan, not just the first one
@@ -517,10 +525,8 @@ See also:
                 });
             }
             
-            // Save progress after each iteration
-            progressTracker.save(state).catch(() => {
-              // Ignore save errors
-            });
+            // Update in-memory progress state (file written at task completion)
+            progressTracker.setCurrentTask(totalTasksProcessed, state);
           });
 
           events.on('error', (err) => {
@@ -559,9 +565,9 @@ See also:
                 info(`Task marked as complete in plan file`);
               }
               
-              // Document result in progress file
-              await progressTracker.appendTaskResult(
-                activeTask,
+              // Document result in progress file using session-based tracking
+              await progressTracker.recordTaskCompletion(
+                finalState,
                 'completed',
                 taskAttempt,
                 `Completed in ${finalState.iteration} iterations`
@@ -598,9 +604,9 @@ See also:
               // User requested stop - exit the entire run
               warn('Loop was stopped by user');
               
-              // Document the stop
-              await progressTracker.appendTaskResult(
-                activeTask,
+              // Document the stop using session-based tracking
+              await progressTracker.recordTaskCompletion(
+                finalState,
                 'stuck',
                 taskAttempt,
                 'Stopped by user'
@@ -613,9 +619,9 @@ See also:
             } else if (finalState.status === 'failed') {
               warn(`✗ Task attempt ${taskAttempt} failed: ${activeTask.title}`);
               
-              // Document failure for learning
-              await progressTracker.appendTaskResult(
-                activeTask,
+              // Document failure for learning using session-based tracking
+              await progressTracker.recordTaskCompletion(
+                finalState,
                 'failed',
                 taskAttempt,
                 'Loop execution failed'
@@ -634,9 +640,14 @@ See also:
             const errMsg = err instanceof Error ? err.message : String(err);
             error(errMsg);
             
-            // Document failure
-            await progressTracker.appendTaskResult(
-              activeTask,
+            // Document failure using session-based tracking with minimal error state
+            const errorState: FullLoopState = {
+              ...createInitialState(activeTask),
+              status: 'failed',
+              endedAt: new Date(),
+            };
+            await progressTracker.recordTaskCompletion(
+              errorState,
               'failed',
               taskAttempt,
               undefined,
@@ -706,6 +717,12 @@ See also:
         } else {
           warn('Failed to push changes to remote');
         }
+      }
+      
+      // Show informational message when push is disabled but changes were made
+      if (!autoPush && isGitRepo && totalTasksCompleted > 0) {
+        console.log('');
+        info('💡 Changes not pushed. Use --push flag or set "autoPush": true in config.');
       }
       
       if (totalTasksFailed === 0 && totalTasksCompleted > 0) {

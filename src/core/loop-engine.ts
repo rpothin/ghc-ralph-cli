@@ -518,6 +518,16 @@ Do not write prose explanations. Use only ACTION blocks.`;
           summary
         );
 
+        // Attach verbosity data for progress tracking
+        completedRecord.rawResponse = responseContent;
+        if (executionResult) {
+          completedRecord.actions = executionResult.results.map((r) => ({
+            type: r.action?.type ?? 'UNKNOWN',
+            success: r.success,
+            summary: r.message,
+          }));
+        }
+
         this.state.iterations.push(completedRecord);
         this.events.emit('iterationEnd', completedRecord, this.state);
       } else {
@@ -549,12 +559,80 @@ Do not write prose explanations. Use only ACTION blocks.`;
   }
 
   /**
-   * Extract a summary from the response
+   * Extract commit message summary from the response content.
+   * Priority: [COMMIT_MESSAGE] block > [ACTION:COMPLETE] reason > First action type > Fallback
    */
   private extractSummary(content: string): string {
-    // Simple extraction - first 100 chars
-    const firstLine = content.split('\n')[0] ?? '';
-    return firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
+    // Priority 1: Explicit [COMMIT_MESSAGE] block (preferred)
+    const commitMatch = content.match(
+      /\[COMMIT_MESSAGE\]\s*([\s\S]*?)\[\/COMMIT_MESSAGE\]/i
+    );
+    if (commitMatch?.[1]) {
+      const message = commitMatch[1].trim().split('\n')[0]?.trim();
+      if (message && message.length > 0) {
+        // Already within limits, agent followed guidelines
+        return message.length > 50 ? this.truncateAtWord(message, 50) : message;
+      }
+    }
+
+    // Priority 2: Extract from COMPLETE action reason (fallback for completion iterations)
+    const completeMatch = content.match(
+      /\[ACTION:COMPLETE\]\s*(?:reason:\s*)?([\s\S]*?)(?:\[\/ACTION|\[ACTION:|$)/i
+    );
+    if (completeMatch?.[1]) {
+      const reason = completeMatch[1].trim().split('\n')[0]?.trim();
+      if (reason && reason.length > 0) {
+        return this.truncateAtWord(`Complete: ${reason}`, 50);
+      }
+    }
+
+    // Priority 3: Use first action type as summary
+    const actionMatch = content.match(/\[ACTION:(\w+)\]/i);
+    if (actionMatch?.[1]) {
+      const actionType = actionMatch[1].toUpperCase();
+      // Try to get more context from the action
+      if (actionType === 'CREATE') {
+        const pathMatch = content.match(/\[ACTION:CREATE\]\s*(?:path:\s*)?([^\n]+)/i);
+        if (pathMatch?.[1]) {
+          return this.truncateAtWord(`Create ${pathMatch[1].trim()}`, 50);
+        }
+      } else if (actionType === 'EXECUTE') {
+        const cmdMatch = content.match(/\[ACTION:EXECUTE\]\s*(?:command:\s*)?([^\n]+)/i);
+        if (cmdMatch?.[1]) {
+          return this.truncateAtWord(`Run: ${cmdMatch[1].trim()}`, 50);
+        }
+      }
+      return `[${actionType}]`;
+    }
+
+    // Priority 4: Fallback - truncate first non-preamble line
+    const preamblePatterns = /^(I'll|I will|Let me|I need to|I'm going|First,?|Now,?|OK|Okay|Sure|Here)/i;
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed.length > 0 && !preamblePatterns.test(trimmed)) {
+        return this.truncateAtWord(trimmed, 50);
+      }
+    }
+
+    return 'Iteration update';
+  }
+
+  /**
+   * Truncate at word boundary to avoid mid-word cuts
+   */
+  private truncateAtWord(str: string, maxLen: number): string {
+    if (str.length <= maxLen) return str;
+
+    const ellipsis = '...';
+    const targetLen = maxLen - ellipsis.length;
+    const truncated = str.substring(0, targetLen);
+    const lastSpace = truncated.lastIndexOf(' ');
+
+    // Use word boundary if in the latter half
+    if (lastSpace > targetLen * 0.5) {
+      return truncated.substring(0, lastSpace) + ellipsis;
+    }
+    return truncated + ellipsis;
   }
 
   /**
