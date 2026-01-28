@@ -1383,3 +1383,50 @@ fatal: cannot lock ref 'HEAD': is at X but expected Y
 - `npm run typecheck` ✅
 - `npm test` ✅ (311 tests passing, +6 new tests)
 - `npm run build` ✅
+
+## 2026-01-28 - v0.1.3 Remediation: Phase 2 Reliability Improvements
+
+### Context
+Continuing the v0.1.3 remediation plan with Phase 2 (Reliability Improvements).
+
+### Issue #4: Prompt Engineering for Honesty
+
+**Problem**: The AI sometimes reported tasks as COMPLETE when they weren't fully working. No explicit guidance existed about honest completion reporting.
+
+**Solution**: Enhanced prompt engineering with HONESTY_GUIDANCE section:
+- Added comprehensive HONESTY_GUIDANCE to context-builder.ts with:
+  - "Never use COMPLETE if commands failed or you're uncertain"
+  - "If stuck, use STUCK action with details about the blocker"
+  - Examples of honest vs dishonest completion scenarios
+- Added STUCK_EXAMPLE to prompt-examples.ts showing proper STUCK action format
+- Updated FORMAT_INSTRUCTIONS and MINIMAL_EXAMPLES to include STUCK action
+- Added failure warning in ActionExecutor: warns when COMPLETE used despite failed commands
+
+**Files Modified**:
+- `src/core/context-builder.ts` - Enhanced HONESTY_GUIDANCE section
+- `src/core/prompt-examples.ts` - Added STUCK_EXAMPLE, updated FORMAT_INSTRUCTIONS
+- `src/core/prompt-examples.test.ts` - Updated test expectations
+- `src/core/action-executor.ts` - Failed command tracking and COMPLETE warning
+- `src/core/index.ts` - Export STUCK_EXAMPLE
+
+### Issue #2: Git Push Implementation
+
+**Problem**: The CLI commits changes but doesn't push them to remote, leaving changes only on local branch.
+
+**Solution**: Added configurable `pushStrategy` option:
+- New config option: `pushStrategy?: 'per-task' | 'per-run' | 'manual'`
+  - `per-task` (default): Push after each task completes
+  - `per-run`: Push once at the end of the run
+  - `manual`: No automatic push
+- Integrated into run command flow with proper error handling
+- Respects existing autoPush setting (autoPush=false disables all pushing)
+
+**Files Modified**:
+- `src/core/config-schema.ts` - Added pushStrategy config option with validation
+- `src/commands/run.ts` - Implemented pushStrategy logic (per-task and per-run)
+- `src/core/config-schema.test.ts` - Updated CONFIG_KEYS test
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing)
+- `npm run build` ✅

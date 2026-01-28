@@ -117,6 +117,7 @@ describe('Config Schema', () => {
         'mcpServers',
         'maxRetriesPerTask',
         'autoPush',
+        'pushStrategy',
       ];
       expect(CONFIG_KEYS).toEqual(expectedKeys);
     });

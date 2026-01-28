@@ -421,6 +421,7 @@ See also:
       let totalTasksFailed = 0;
       const maxRetriesPerTask = config.maxRetriesPerTask ?? 2;
       const autoPush = config.autoPush ?? false;
+      const pushStrategy = config.pushStrategy ?? 'per-task';
 
       // ========== MULTI-TASK ITERATION LOOP ==========
       // This is the core fix: process ALL tasks in the plan, not just the first one
@@ -554,12 +555,14 @@ See also:
                 `Task completed in ${finalState.iteration} iterations`
               );
               
-              // Push to remote if configured
-              if (autoPush && isGitRepo) {
+              // Push to remote if configured (per-task strategy)
+              if (autoPush && pushStrategy === 'per-task' && isGitRepo) {
                 info('Pushing changes to remote...');
                 const pushed = await gitManager.pushToRemote();
                 if (pushed) {
                   success('Changes pushed to remote');
+                } else {
+                  warn('Failed to push changes to remote');
                 }
               }
               
@@ -668,6 +671,17 @@ See also:
       console.log(`  ${dim('Tasks failed:')} ${totalTasksFailed}`);
       console.log(`  ${dim('Elapsed time:')} ${formatElapsedTime(startTime)}`);
       console.log('');
+      
+      // Push to remote if configured (per-run strategy)
+      if (autoPush && pushStrategy === 'per-run' && isGitRepo && totalTasksCompleted > 0) {
+        info('Pushing all changes to remote...');
+        const pushed = await gitManager.pushToRemote();
+        if (pushed) {
+          success('All changes pushed to remote');
+        } else {
+          warn('Failed to push changes to remote');
+        }
+      }
       
       if (totalTasksFailed === 0 && totalTasksCompleted > 0) {
         success(`🎉 All ${totalTasksCompleted} tasks completed successfully!`);
