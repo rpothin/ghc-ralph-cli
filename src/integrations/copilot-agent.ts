@@ -5,10 +5,13 @@
  * Uses the @github/copilot-sdk for actual Copilot API access
  */
 
-import { CopilotClient, type CopilotSession } from '@github/copilot-sdk';
+import { CopilotClient, type CopilotSession, type ModelInfo } from '@github/copilot-sdk';
 import { debug, error as logError, info, warn } from '../utils/index.js';
 import { getGitHubAuth, type AuthResult } from './auth.js';
 import { TokenTracker, estimateTokens, type TokenUsage } from './tokens.js';
+
+// Re-export ModelInfo for consumers
+export type { ModelInfo } from '@github/copilot-sdk';
 
 /**
  * Available Copilot models
@@ -273,5 +276,62 @@ export class CopilotAgent {
    */
   getConfig(): CopilotAgentConfig {
     return { ...this.config };
+  }
+
+  /**
+   * List available models from the Copilot API
+   * Returns models with their capabilities and metadata
+   */
+  async listAvailableModels(): Promise<ModelInfo[]> {
+    // Create a temporary client if not initialized
+    if (!this.client) {
+      const tempClient = new CopilotClient({
+        autoStart: true,
+        logLevel: 'error',
+      });
+
+      try {
+        await tempClient.start();
+        const models = await tempClient.listModels();
+        await tempClient.stop();
+        return models;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        warn(`Failed to list models: ${errorMsg}`);
+        await tempClient.stop().catch(() => {});
+        return [];
+      }
+    }
+
+    // Use existing client
+    try {
+      return await this.client.listModels();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      warn(`Failed to list models: ${errorMsg}`);
+      return [];
+    }
+  }
+
+  /**
+   * Static method to list available models without requiring agent initialization
+   */
+  static async fetchAvailableModels(): Promise<ModelInfo[]> {
+    const tempClient = new CopilotClient({
+      autoStart: true,
+      logLevel: 'error',
+    });
+
+    try {
+      await tempClient.start();
+      const models = await tempClient.listModels();
+      await tempClient.stop();
+      return models;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      warn(`Failed to fetch models: ${errorMsg}`);
+      await tempClient.stop().catch(() => {});
+      return [];
+    }
   }
 }

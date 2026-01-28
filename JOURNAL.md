@@ -1295,3 +1295,48 @@ Implemented Option A from the remediation plan (`plans/LOOP_MAJOR_BUG_REMEDIATIO
 - `npm run typecheck` ✅
 - `npm test` ✅ (285 tests passing)
 - `npm run build` ✅
+
+## 2026-01-28 - Model Compatibility Improvements
+
+### Context
+Following the multi-task loop fix, analyzed the `MODEL_COMPAT_TEST_PLAN.md` to address model compatibility concerns:
+1. The `ghcralph init` command had a hardcoded list of 5 models
+2. GitHub Copilot CLI actually offers 14+ models
+3. The SDK provides `client.listModels()` API for dynamic model discovery
+4. No tests existed to validate parsing across different model output styles
+
+### Changes
+
+1. **Dynamic Model Listing** (`src/integrations/copilot-agent.ts`):
+   - Added `listAvailableModels()` instance method - fetches models from existing client
+   - Added static `fetchAvailableModels()` method - creates temporary client to fetch models
+   - Re-exported `ModelInfo` type from SDK for consumers
+
+2. **Dynamic Model Selection in Init** (`src/commands/init.ts`):
+   - Added `fetchModelOptions()` helper that calls `CopilotAgent.fetchAvailableModels()`
+   - Updated model selection prompt to use dynamically fetched models
+   - Falls back to hardcoded list if SDK fetch fails
+   - Maintains "Custom (enter manually)" option
+
+3. **Model Compatibility Tests** (`src/core/model-compatibility.test.ts`):
+   - Created parameterized test suite for response parsing across model variations
+   - Tests CREATE, EDIT, EXECUTE, COMPLETE, and STUCK action parsing
+   - Documents current parser behavior with different formatting styles
+   - Tests edge cases: Windows line endings, mixed case action types, malformed blocks
+
+4. **Updated CopilotAgent Tests** (`src/integrations/copilot-agent.test.ts`):
+   - Added `mockListModels` for SDK mock
+   - Added tests for `listAvailableModels()` and `fetchAvailableModels()`
+   - Tests error handling when SDK fetch fails
+
+### Files Modified
+- `src/integrations/copilot-agent.ts` - listAvailableModels methods
+- `src/integrations/index.ts` - Export ModelInfo type
+- `src/commands/init.ts` - Dynamic model fetching
+- `src/core/model-compatibility.test.ts` - New parameterized tests
+- `src/integrations/copilot-agent.test.ts` - listModels tests
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (305 tests passing)
+- `npm run build` ✅
