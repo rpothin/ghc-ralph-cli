@@ -39,7 +39,6 @@ export interface RunOptions {
   allowDelete?: boolean;
   dryRun?: boolean;
   pauseBetweenTasks?: boolean;
-  push?: boolean;
 }
 
 /**
@@ -150,7 +149,6 @@ export function registerRunCommand(program: Command): void {
     .option('--allow-delete', 'Allow deletion of pre-existing files')
     .option('--dry-run', 'Show what would happen without executing')
     .option('--pause-between-tasks', 'Pause for human review after each task (strict Ralph mode)')
-    .option('--push', 'Push changes to remote after completion')
     .addHelpText('after', `
 Config-backed settings (set via .ghcralph/config.json or GHCRALPH_* env vars):
   - maxIterations, maxTokens, defaultModel, autoCommit, branchPrefix
@@ -163,7 +161,6 @@ Examples:
   $ ghcralph run --github
   $ ghcralph run --task "Fix bug" --context "src/**/*.ts" --branch fix/login-bug
   $ ghcralph run --task "Large refactor" --unlimited --timeout 60
-  $ ghcralph run --file PLAN.md --push
 
 See also:
   ghcralph status     View current session progress
@@ -427,7 +424,7 @@ See also:
       let totalTasksCompleted = 0;
       let totalTasksFailed = 0;
       const maxRetriesPerTask = config.maxRetriesPerTask ?? 2;
-      const autoPush = options.push === true || (config.autoPush ?? false);
+      const autoPush = config.autoPush ?? false;
       const pushStrategy = config.pushStrategy ?? 'per-task';
 
       // Compute total tasks count for commit message context (if available)
@@ -722,7 +719,8 @@ See also:
       // Show informational message when push is disabled but changes were made
       if (!autoPush && isGitRepo && totalTasksCompleted > 0) {
         console.log('');
-        info('💡 Changes not pushed. Use --push flag or set "autoPush": true in config.');
+        info('💡 Changes committed locally. Review and push manually with: git push');
+        info('   To enable auto-push, set "autoPush": true in .ghcralph/config.json');
       }
       
       if (totalTasksFailed === 0 && totalTasksCompleted > 0) {

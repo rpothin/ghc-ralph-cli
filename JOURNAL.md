@@ -1664,3 +1664,30 @@ Updated documentation to reflect v0.1.4 changes.
 ### Validation
 - `npm run build` ✅
 - `npm run lint` ✅
+
+## 2026-01-28 - v0.1.4 Remove --push Flag
+
+### Context
+After discussion, decided to remove the `--push` CLI flag to avoid confusion with the configuration-based push behavior. The configuration already provides 3 clear options:
+- `autoPush: true` + `pushStrategy: "per-task"` - Push after each task
+- `autoPush: true` + `pushStrategy: "per-run"` - Push at end of run
+- `autoPush: false` - No auto-push (manual review and push)
+
+### Changes Made
+- Removed `push?: boolean` from `RunOptions` interface
+- Removed `.option('--push', ...)` from command definition
+- Removed example from help text
+- Reverted `autoPush` logic to use config only
+- Updated informational message to be more helpful:
+  - "💡 Changes committed locally. Review and push manually with: git push"
+  - "   To enable auto-push, set \"autoPush\": true in .ghcralph/config.json"
+
+### Documentation Updated
+- `README.md` - Removed --push from Advanced Run Options
+- `docs/cookbook.md` - Removed --push examples, updated push troubleshooting
+- `docs/architecture.md` - Replaced "Push CLI Flag" section with "Push Reminder Message"
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (311 tests passing)

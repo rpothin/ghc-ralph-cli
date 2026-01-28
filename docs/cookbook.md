@@ -108,9 +108,6 @@ ghcralph run --file TODO.md
 
 # Pause between tasks for human review (strict Ralph mode)
 ghcralph run --file TODO.md --pause-between-tasks
-
-# Push changes to remote after completion
-ghcralph run --file TODO.md --push
 ```
 
 **Configuration:**
@@ -395,10 +392,7 @@ Check your push configuration:
 ghcralph config get autoPush
 ghcralph config get pushStrategy
 
-# Enable auto-push for a single run (no config change)
-ghcralph run --file PLAN.md --push
-
-# Enable auto-push permanently
+# Enable auto-push
 ghcralph config set autoPush true
 
 # Set push strategy (per-task, per-run, or manual)
@@ -406,9 +400,9 @@ ghcralph config set pushStrategy per-task
 ```
 
 **Push Strategy Options:**
-- `per-task`: Push after each task completes (default)
+- `per-task`: Push after each task completes (default when autoPush is true)
 - `per-run`: Push once at end of run
-- `manual`: No auto-push (you push manually)
+- `manual`: No auto-push (you push manually after review)
 
 ### Progress file missing details
 

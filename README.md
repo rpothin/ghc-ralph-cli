@@ -162,9 +162,6 @@ ghcralph run --github
 # Pause between tasks for human review (strict Ralph mode)
 ghcralph run --file PLAN.md --pause-between-tasks
 
-# Push changes to remote after completion
-ghcralph run --file PLAN.md --push
-
 # Specify context files
 ghcralph run --task "Fix tests" --context "src/**/*.test.ts"
 

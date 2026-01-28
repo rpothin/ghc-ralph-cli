@@ -1158,16 +1158,13 @@ graph LR
 - `setCurrentTask(taskNumber, state)` - Update in-memory state per iteration
 - `recordTaskCompletion(state, status, ...)` - Add task to history and persist
 
-### Push CLI Flag
+### Push Reminder Message
 
-v0.1.4 adds `--push` flag for one-time push override:
+v0.1.4 shows a helpful message when auto-push is disabled:
 
-```bash
-# Push without changing config
-ghcralph run --file PLAN.md --push
-
-# Informational message when push disabled
-# 💡 Changes not pushed. Use --push flag or set "autoPush": true in config.
+```
+💡 Changes committed locally. Review and push manually with: git push
+   To enable auto-push, set "autoPush": true in .ghcralph/config.json
 ```
 
 ### Standard Verbosity Actions
