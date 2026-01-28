@@ -40,7 +40,7 @@ export { GitHubPlan } from './github-plan.js';
 export type { GitHubPlanConfig } from './github-plan.js';
 
 export { ProgressTracker } from './progress-tracker.js';
-export type { SessionData } from './progress-tracker.js';
+export type { SessionData, TaskResult, RunSession } from './progress-tracker.js';
 
 export { ContextBuilder, createContextBuilder } from './context-builder.js';
 export type { ContextBuilderConfig, BuiltContext } from './context-builder.js';

@@ -1340,3 +1340,46 @@ Following the multi-task loop fix, analyzed the `MODEL_COMPAT_TEST_PLAN.md` to a
 - `npm run typecheck` ✅
 - `npm test` ✅ (305 tests passing)
 - `npm run build` ✅
+
+## 2026-01-28 - v0.1.3 Remediation: Phase 1 Critical Fixes
+
+### Context
+Testing v0.1.2 on the demo repository revealed 6 issues requiring fixes. This entry covers Phase 1 (Critical Fixes) from the remediation plan.
+
+### Issue #1: Progress File Not Persisting Task History
+
+**Problem**: The progress file only contained information about the last task processed. All previous tasks' iteration logs were lost when a new task began.
+
+**Solution**: Implemented in-memory accumulation with session-based tracking:
+- Added `RunSession` interface to track all tasks across a multi-task run
+- Added `TaskResult` interface to capture complete task history including iterations
+- New methods: `startSession()`, `setCurrentTask()`, `recordTaskCompletion()`, `getSession()`, `getCompletedTaskCount()`
+- `generateFullSessionMarkdown()` produces complete history with all task iterations
+- Full history is written to progress.md after each task completion
+
+**Files Modified**:
+- `src/core/progress-tracker.ts` - Session-based multi-task tracking
+- `src/core/progress-tracker.test.ts` - 6 new tests for session tracking
+- `src/core/index.ts` - Export new types (TaskResult, RunSession)
+
+### Issue #3: Git Lock File Race Conditions
+
+**Problem**: Multiple git operations failed due to concurrent access:
+```
+fatal: Unable to create '.git/index.lock': File exists.
+fatal: cannot lock ref 'HEAD': is at X but expected Y
+```
+
+**Solution**: Added mutex protection using `async-mutex` package:
+- All git operations now serialized through `gitMutex.runExclusive()`
+- Internal `*Unsafe()` methods for mutex-already-held contexts
+- Prevents race conditions between checkpoint creation and other git operations
+
+**Files Modified**:
+- `src/core/checkpoint-manager.ts` - Added mutex protection to all git operations
+- `package.json` - Added `async-mutex` dependency
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing, +6 new tests)
+- `npm run build` ✅

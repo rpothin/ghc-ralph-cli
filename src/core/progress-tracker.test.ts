@@ -23,10 +23,10 @@ describe('ProgressTracker', () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  const createMockTask = (): Task => ({
-    id: 'test-1',
-    title: 'Test Task',
-    content: 'Test content for the task',
+  const createMockTask = (id = 'test-1', title = 'Test Task'): Task => ({
+    id,
+    title,
+    content: `Test content for ${title}`,
     status: 'pending',
     source: 'local',
   });
@@ -130,7 +130,7 @@ describe('ProgressTracker', () => {
 
       expect(md).toContain('### Task Details');
       expect(md).toContain('```');
-      expect(md).toContain('Test content for the task');
+      expect(md).toContain('Test content for Test Task');
     });
   });
 
@@ -219,6 +219,110 @@ describe('ProgressTracker', () => {
       const json = tracker.toJSON(state);
 
       expect(json.lastCheckpoint).toBe('abc1234def5678');
+    });
+  });
+
+  describe('session-based tracking', () => {
+    it('should start a session with branch and total tasks', () => {
+      const tracker = new ProgressTracker(tempDir, 10);
+      tracker.startSession('feature/test-branch', 5);
+
+      const session = tracker.getSession();
+      expect(session).not.toBeNull();
+      expect(session?.branch).toBe('feature/test-branch');
+      expect(session?.totalTasks).toBe(5);
+      expect(session?.completedTasks).toHaveLength(0);
+    });
+
+    it('should track completed task count', () => {
+      const tracker = new ProgressTracker(tempDir, 10);
+      tracker.startSession();
+
+      expect(tracker.getCompletedTaskCount()).toBe(0);
+    });
+
+    it('should record task completion with full iteration history', async () => {
+      const tracker = new ProgressTracker(tempDir, 10);
+      tracker.startSession('main', 3);
+
+      const state = createMockState({ status: 'completed' });
+      await tracker.recordTaskCompletion(state, 'completed', 1, 'Task completed successfully');
+
+      const session = tracker.getSession();
+      expect(session?.completedTasks).toHaveLength(1);
+      expect(session?.completedTasks[0]?.status).toBe('completed');
+      expect(session?.completedTasks[0]?.iterations).toHaveLength(2);
+      expect(tracker.getCompletedTaskCount()).toBe(1);
+
+      // Verify file was written
+      const content = await fs.readFile(tracker.getProgressFilePath(), 'utf-8');
+      expect(content).toContain('# Ralph Progress Log');
+      expect(content).toContain('## Run Session');
+      expect(content).toContain('## Task 1: Test Task');
+      expect(content).toContain('Completed step 1');
+      expect(content).toContain('Completed step 2');
+    });
+
+    it('should preserve history across multiple tasks', async () => {
+      const tracker = new ProgressTracker(tempDir, 10);
+      tracker.startSession('feature/multi-task', 3);
+
+      // First task
+      const state1 = createMockState({
+        task: createMockTask('task-1', 'First Task'),
+        status: 'completed',
+      });
+      await tracker.recordTaskCompletion(state1, 'completed', 1, 'First task done');
+
+      // Second task
+      const state2 = createMockState({
+        task: createMockTask('task-2', 'Second Task'),
+        status: 'completed',
+      });
+      await tracker.recordTaskCompletion(state2, 'completed', 1, 'Second task done');
+
+      // Third task failed
+      const state3 = createMockState({
+        task: createMockTask('task-3', 'Third Task'),
+        status: 'failed',
+      });
+      await tracker.recordTaskCompletion(state3, 'failed', 2, undefined, 'Max iterations reached');
+
+      const session = tracker.getSession();
+      expect(session?.completedTasks).toHaveLength(3);
+      expect(tracker.getCompletedTaskCount()).toBe(3);
+
+      // Verify file contains all tasks
+      const content = await fs.readFile(tracker.getProgressFilePath(), 'utf-8');
+      expect(content).toContain('## Task 1: First Task');
+      expect(content).toContain('## Task 2: Second Task');
+      expect(content).toContain('## Task 3: Third Task');
+      expect(content).toContain('✅ completed');
+      expect(content).toContain('❌ failed');
+      expect(content).toContain('Max iterations reached');
+    });
+
+    it('should auto-start session if not explicitly started', async () => {
+      const tracker = new ProgressTracker(tempDir, 10);
+
+      const state = createMockState({ status: 'completed' });
+      await tracker.recordTaskCompletion(state, 'completed', 1, 'Task done');
+
+      expect(tracker.getSession()).not.toBeNull();
+      expect(tracker.getCompletedTaskCount()).toBe(1);
+    });
+
+    it('should track current task in progress', () => {
+      const tracker = new ProgressTracker(tempDir, 10);
+      tracker.startSession('main', 5);
+
+      const state = createMockState();
+      tracker.setCurrentTask(2, state);
+
+      const session = tracker.getSession();
+      expect(session?.currentTask).toBeDefined();
+      expect(session?.currentTask?.taskNumber).toBe(2);
+      expect(session?.currentTask?.taskId).toBe('test-1');
     });
   });
 });

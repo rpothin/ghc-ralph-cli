@@ -1,7 +1,8 @@
 /**
  * Progress Tracker
  *
- * Creates and maintains Markdown-based progress artifacts
+ * Creates and maintains Markdown-based progress artifacts.
+ * Uses in-memory accumulation to preserve full task history across a run.
  */
 
 import fs from 'node:fs/promises';
@@ -40,6 +41,39 @@ export interface SessionData {
 }
 
 /**
+ * Completed task result for history tracking
+ */
+export interface TaskResult {
+  taskId: string;
+  taskTitle: string;
+  status: 'completed' | 'failed' | 'stuck';
+  attempt: number;
+  iterationCount: number;
+  tokensUsed: number;
+  startedAt: Date;
+  completedAt: Date;
+  summary?: string;
+  error?: string;
+  iterations: IterationRecord[];
+}
+
+/**
+ * Run session tracking all tasks in a multi-task execution
+ */
+export interface RunSession {
+  startTime: Date;
+  branch?: string | undefined;
+  totalTasks?: number | undefined;
+  completedTasks: TaskResult[];
+  currentTask?: {
+    taskId: string;
+    taskTitle: string;
+    taskNumber: number;
+    state: FullLoopState;
+  } | undefined;
+}
+
+/**
  * Format a date for display
  */
 function formatDate(date: Date): string {
@@ -63,14 +97,197 @@ function formatElapsed(startDate: Date, endDate?: Date): string {
 
 /**
  * Progress Tracker class
+ * 
+ * Maintains in-memory accumulation of all task results across a run,
+ * persisting full history to the progress file after each task.
  */
 export class ProgressTracker {
   private projectRoot: string | undefined;
   private maxIterations: number;
+  private session: RunSession | null = null;
 
   constructor(projectRoot?: string, maxIterations: number = 10) {
     this.projectRoot = projectRoot;
     this.maxIterations = maxIterations;
+  }
+
+  /**
+   * Get the current session (for context like task numbers in commit messages)
+   */
+  getSession(): RunSession | null {
+    return this.session;
+  }
+
+  /**
+   * Get the count of completed tasks in the session
+   */
+  getCompletedTaskCount(): number {
+    return this.session?.completedTasks.length ?? 0;
+  }
+
+  /**
+   * Start a new run session for multi-task execution
+   */
+  startSession(branch?: string, totalTasks?: number): void {
+    this.session = {
+      startTime: new Date(),
+      branch,
+      totalTasks,
+      completedTasks: [],
+    };
+    debug(`Started progress tracking session${branch ? ` on branch ${branch}` : ''}`);
+  }
+
+  /**
+   * Set the current task being processed (for live progress display)
+   */
+  setCurrentTask(taskNumber: number, state: FullLoopState): void {
+    if (!this.session) {
+      this.startSession();
+    }
+    
+    this.session!.currentTask = {
+      taskId: state.task.id,
+      taskTitle: state.task.title,
+      taskNumber,
+      state,
+    };
+  }
+
+  /**
+   * Record a completed task result and persist to file
+   */
+  async recordTaskCompletion(
+    state: FullLoopState,
+    status: 'completed' | 'failed' | 'stuck',
+    attempt: number,
+    summary?: string,
+    error?: string
+  ): Promise<void> {
+    if (!this.session) {
+      this.startSession();
+    }
+
+    const result: TaskResult = {
+      taskId: state.task.id,
+      taskTitle: state.task.title,
+      status,
+      attempt,
+      iterationCount: state.iteration,
+      tokensUsed: state.tokensUsed,
+      startedAt: state.startedAt,
+      completedAt: new Date(),
+      iterations: [...state.iterations],
+    };
+
+    if (summary) result.summary = summary;
+    if (error) result.error = error;
+
+    this.session!.completedTasks.push(result);
+    this.session!.currentTask = undefined;
+
+    // Persist full history to file
+    await this.saveFullSession();
+  }
+
+  /**
+   * Save the full session history to progress file
+   */
+  private async saveFullSession(): Promise<void> {
+    if (!this.session) return;
+
+    const filePath = this.getProgressFilePath();
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+
+    const content = this.generateFullSessionMarkdown();
+    await fs.writeFile(filePath, content, 'utf-8');
+
+    debug(`Progress saved with ${this.session.completedTasks.length} task(s) to ${filePath}`);
+  }
+
+  /**
+   * Generate full session markdown with all task history
+   */
+  private generateFullSessionMarkdown(): string {
+    if (!this.session) return '';
+
+    let md = `# Ralph Progress Log\n\n`;
+    md += `## Run Session\n\n`;
+    md += `- **Started**: ${formatDate(this.session.startTime)}\n`;
+    
+    if (this.session.branch) {
+      md += `- **Branch**: ${this.session.branch}\n`;
+    }
+    
+    if (this.session.totalTasks) {
+      md += `- **Total Tasks**: ${this.session.totalTasks}\n`;
+    }
+    
+    md += `- **Completed**: ${this.session.completedTasks.length}\n`;
+    md += `- **Elapsed**: ${formatElapsed(this.session.startTime)}\n`;
+    md += `\n---\n\n`;
+
+    // Output all completed tasks with full iteration history
+    for (let i = 0; i < this.session.completedTasks.length; i++) {
+      const task = this.session.completedTasks[i];
+      if (!task) continue;
+      
+      const taskNum = i + 1;
+      const statusEmoji = task.status === 'completed' ? '✅' : task.status === 'stuck' ? '🔄' : '❌';
+      
+      md += `## Task ${taskNum}: ${task.taskTitle}\n\n`;
+      md += `- **ID**: ${task.taskId}\n`;
+      md += `- **Status**: ${statusEmoji} ${task.status}\n`;
+      md += `- **Attempt**: ${task.attempt}\n`;
+      md += `- **Iterations**: ${task.iterationCount}\n`;
+      md += `- **Tokens Used**: ${task.tokensUsed.toLocaleString()}\n`;
+      md += `- **Started**: ${formatDate(task.startedAt)}\n`;
+      md += `- **Completed**: ${formatDate(task.completedAt)}\n`;
+      md += `- **Duration**: ${formatElapsed(task.startedAt, task.completedAt)}\n`;
+      
+      if (task.summary) {
+        md += `- **Summary**: ${task.summary}\n`;
+      }
+      
+      if (task.error) {
+        md += `- **Error**: ${task.error}\n`;
+      }
+      
+      // Include iteration log for this task
+      if (task.iterations.length > 0) {
+        md += `\n### Iteration Log\n\n`;
+        for (const iter of task.iterations) {
+          md += this.formatIteration(iter);
+        }
+      }
+      
+      md += `\n---\n\n`;
+    }
+
+    // Include current task if in progress
+    if (this.session.currentTask) {
+      const { taskNumber, state } = this.session.currentTask;
+      md += `## Task ${taskNumber}: ${state.task.title} (In Progress)\n\n`;
+      md += `- **ID**: ${state.task.id}\n`;
+      md += `- **Status**: 🔄 ${this.formatStatus(state.status)}\n`;
+      md += `- **Iterations**: ${state.iteration}/${this.maxIterations}\n`;
+      md += `- **Tokens Used**: ${state.tokensUsed.toLocaleString()}\n`;
+      md += `- **Started**: ${formatDate(state.startedAt)}\n`;
+      
+      if (state.lastCheckpoint) {
+        md += `- **Last Checkpoint**: \`${state.lastCheckpoint}\`\n`;
+      }
+      
+      if (state.iterations.length > 0) {
+        md += `\n### Iteration Log\n\n`;
+        for (const iter of state.iterations) {
+          md += this.formatIteration(iter);
+        }
+      }
+    }
+
+    return md;
   }
 
   /**

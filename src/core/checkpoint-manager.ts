@@ -1,11 +1,14 @@
 /**
  * Checkpoint Manager
  *
- * Manages automatic git commits after each loop iteration
+ * Manages automatic git commits after each loop iteration.
+ * Uses a mutex to prevent race conditions when multiple git operations
+ * are attempted concurrently.
  */
 
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { Mutex } from 'async-mutex';
 import { debug, warn } from '../utils/index.js';
 
 const execAsync = promisify(exec);
@@ -51,10 +54,14 @@ export interface Checkpoint {
 
 /**
  * Checkpoint Manager class
+ * 
+ * Provides thread-safe git operations using a mutex to prevent
+ * concurrent access that causes "index.lock" and "HEAD locked" errors.
  */
 export class CheckpointManager {
   private config: CheckpointConfig;
   private checkpoints: Checkpoint[] = [];
+  private gitMutex: Mutex = new Mutex();
 
   constructor(config: Partial<CheckpointConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -89,6 +96,13 @@ export class CheckpointManager {
    * Check if there are any modified files to commit
    */
   async hasChangesToCommit(): Promise<boolean> {
+    return this.gitMutex.runExclusive(() => this.hasChangesToCommitUnsafe());
+  }
+
+  /**
+   * Internal: Check for changes without acquiring mutex
+   */
+  private async hasChangesToCommitUnsafe(): Promise<boolean> {
     try {
       const { stdout } = await execAsync('git status --porcelain', { cwd: this.config.cwd });
       return stdout.trim().length > 0;
@@ -101,6 +115,13 @@ export class CheckpointManager {
    * Get list of modified files
    */
   async getModifiedFiles(): Promise<string[]> {
+    return this.gitMutex.runExclusive(() => this.getModifiedFilesUnsafe());
+  }
+
+  /**
+   * Internal: Get modified files without acquiring mutex
+   */
+  private async getModifiedFilesUnsafe(): Promise<string[]> {
     try {
       const { stdout } = await execAsync('git status --porcelain', { cwd: this.config.cwd });
       return stdout
@@ -117,6 +138,13 @@ export class CheckpointManager {
    * Stage all modified files
    */
   async stageAllChanges(): Promise<boolean> {
+    return this.gitMutex.runExclusive(() => this.stageAllChangesUnsafe());
+  }
+
+  /**
+   * Internal: Stage changes without acquiring mutex
+   */
+  private async stageAllChangesUnsafe(): Promise<boolean> {
     try {
       await execAsync('git add -A', { cwd: this.config.cwd });
       debug('Staged all changes');
@@ -128,7 +156,7 @@ export class CheckpointManager {
   }
 
   /**
-   * Create a checkpoint commit
+   * Create a checkpoint commit (mutex-protected)
    */
   async createCheckpoint(
     iteration: number,
@@ -140,76 +168,133 @@ export class CheckpointManager {
       return null;
     }
 
-    // Check if there are changes to commit
-    const hasChanges = await this.hasChangesToCommit();
-    if (!hasChanges) {
-      debug('No changes to commit for checkpoint');
-      return null;
-    }
+    // Use mutex to prevent concurrent git operations
+    return this.gitMutex.runExclusive(async () => {
+      // Check if there are changes to commit
+      const hasChanges = await this.hasChangesToCommitUnsafe();
+      if (!hasChanges) {
+        debug('No changes to commit for checkpoint');
+        return null;
+      }
 
-    // Get list of modified files before staging
-    const filesModified = await this.getModifiedFiles();
+      // Get list of modified files before staging
+      const filesModified = await this.getModifiedFilesUnsafe();
 
-    // Stage all changes
-    const staged = await this.stageAllChanges();
-    if (!staged) {
-      return null;
-    }
+      // Stage all changes
+      const staged = await this.stageAllChangesUnsafe();
+      if (!staged) {
+        return null;
+      }
 
-    // Build commit message
-    const truncatedSummary = summary.length > 50 
-      ? summary.substring(0, 47) + '...'
-      : summary;
-    
-    const message = `${this.config.messagePrefix} iteration ${iteration} - ${truncatedSummary}`;
-    const fullMessage = `${message}\n\nTokens used: ${tokensUsed}\nFiles modified: ${filesModified.length}`;
-
-    try {
-      // Create commit
-      await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+      // Build commit message
+      const truncatedSummary = summary.length > 50 
+        ? summary.substring(0, 47) + '...'
+        : summary;
       
-      // Get commit hash
-      const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
-      const commitHash = stdout.trim();
+      const message = `${this.config.messagePrefix} iteration ${iteration} - ${truncatedSummary}`;
+      const fullMessage = `${message}\n\nTokens used: ${tokensUsed}\nFiles modified: ${filesModified.length}`;
 
-      const checkpoint: Checkpoint = {
-        iteration,
-        commitHash,
-        message,
-        filesModified,
-        timestamp: new Date(),
-        tokensUsed,
-      };
+      try {
+        // Create commit
+        await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+        
+        // Get commit hash
+        const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
+        const commitHash = stdout.trim();
 
-      this.checkpoints.push(checkpoint);
-      debug(`Created checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
-      
-      return checkpoint;
-    } catch (err) {
-      warn('Failed to create checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
-      return null;
-    }
+        const checkpoint: Checkpoint = {
+          iteration,
+          commitHash,
+          message,
+          filesModified,
+          timestamp: new Date(),
+          tokensUsed,
+        };
+
+        this.checkpoints.push(checkpoint);
+        debug(`Created checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
+        
+        return checkpoint;
+      } catch (err) {
+        warn('Failed to create checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
+        return null;
+      }
+    });
   }
 
   /**
-   * Rollback to a specific checkpoint
+   * Rollback to a specific checkpoint (mutex-protected)
    */
   async rollbackTo(commitHash: string): Promise<boolean> {
-    try {
-      // Soft reset to keep changes in working directory for review
-      await execAsync(`git reset --soft "${commitHash}"`, { cwd: this.config.cwd });
-      debug(`Rolled back to ${commitHash.substring(0, 7)}`);
-      return true;
-    } catch (err) {
-      warn('Failed to rollback: ' + (err instanceof Error ? err.message : String(err)));
-      return false;
-    }
+    return this.gitMutex.runExclusive(async () => {
+      try {
+        // Soft reset to keep changes in working directory for review
+        await execAsync(`git reset --soft "${commitHash}"`, { cwd: this.config.cwd });
+        debug(`Rolled back to ${commitHash.substring(0, 7)}`);
+        return true;
+      } catch (err) {
+        warn('Failed to rollback: ' + (err instanceof Error ? err.message : String(err)));
+        return false;
+      }
+    });
   }
 
   /**
-   * Hard rollback to a specific checkpoint (discard changes)
+   * Hard rollback to a specific checkpoint (mutex-protected)
    */
   async hardRollbackTo(commitHash: string): Promise<boolean> {
+    return this.gitMutex.runExclusive(async () => {
+      try {
+        await execAsync(`git reset --hard "${commitHash}"`, { cwd: this.config.cwd });
+        debug(`Hard rolled back to ${commitHash.substring(0, 7)}`);
+        return true;
+      } catch (err) {
+        warn('Failed to hard rollback: ' + (err instanceof Error ? err.message : String(err)));
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Rollback by N iterations (mutex-protected)
+   */
+  async rollbackIterations(count: number = 1): Promise<boolean> {
+    return this.gitMutex.runExclusive(async () => {
+      if (this.checkpoints.length < count) {
+        warn(`Cannot rollback ${count} iterations, only ${this.checkpoints.length} checkpoints available`);
+        return false;
+      }
+
+      // Get the checkpoint to rollback to
+      const targetIndex = this.checkpoints.length - count - 1;
+      
+      if (targetIndex < 0) {
+        // Rollback before first checkpoint - get parent of first checkpoint
+        const firstCheckpoint = this.checkpoints[0];
+        if (!firstCheckpoint) return false;
+        
+        try {
+          const { stdout } = await execAsync(`git rev-parse "${firstCheckpoint.commitHash}^"`, { cwd: this.config.cwd });
+          const parentHash = stdout.trim();
+          // Call internal version to avoid re-acquiring mutex
+          return this.hardRollbackToUnsafe(parentHash);
+        } catch {
+          warn('Cannot find parent commit for rollback');
+          return false;
+        }
+      }
+
+      const targetCheckpoint = this.checkpoints[targetIndex];
+      if (!targetCheckpoint) return false;
+      
+      return this.hardRollbackToUnsafe(targetCheckpoint.commitHash);
+    });
+  }
+
+  /**
+   * Internal: Hard rollback without acquiring mutex
+   */
+  private async hardRollbackToUnsafe(commitHash: string): Promise<boolean> {
     try {
       await execAsync(`git reset --hard "${commitHash}"`, { cwd: this.config.cwd });
       debug(`Hard rolled back to ${commitHash.substring(0, 7)}`);
@@ -221,72 +306,52 @@ export class CheckpointManager {
   }
 
   /**
-   * Rollback by N iterations
-   */
-  async rollbackIterations(count: number = 1): Promise<boolean> {
-    if (this.checkpoints.length < count) {
-      warn(`Cannot rollback ${count} iterations, only ${this.checkpoints.length} checkpoints available`);
-      return false;
-    }
-
-    // Get the checkpoint to rollback to
-    const targetIndex = this.checkpoints.length - count - 1;
-    
-    if (targetIndex < 0) {
-      // Rollback before first checkpoint - get parent of first checkpoint
-      const firstCheckpoint = this.checkpoints[0];
-      if (!firstCheckpoint) return false;
-      
-      try {
-        const { stdout } = await execAsync(`git rev-parse "${firstCheckpoint.commitHash}^"`, { cwd: this.config.cwd });
-        const parentHash = stdout.trim();
-        return this.hardRollbackTo(parentHash);
-      } catch {
-        warn('Cannot find parent commit for rollback');
-        return false;
-      }
-    }
-
-    const targetCheckpoint = this.checkpoints[targetIndex];
-    if (!targetCheckpoint) return false;
-    
-    return this.hardRollbackTo(targetCheckpoint.commitHash);
-  }
-
-  /**
-   * Get the initial commit hash before Ralph started
+   * Get the initial commit hash before Ralph started (mutex-protected)
    */
   async getInitialCommit(): Promise<string | null> {
-    if (this.checkpoints.length === 0) {
-      return null;
-    }
+    return this.gitMutex.runExclusive(async () => {
+      if (this.checkpoints.length === 0) {
+        return null;
+      }
 
-    const firstCheckpoint = this.checkpoints[0];
-    if (!firstCheckpoint) return null;
+      const firstCheckpoint = this.checkpoints[0];
+      if (!firstCheckpoint) return null;
 
-    try {
-      const { stdout } = await execAsync(`git rev-parse "${firstCheckpoint.commitHash}^"`, { cwd: this.config.cwd });
-      return stdout.trim();
-    } catch {
-      return null;
-    }
+      try {
+        const { stdout } = await execAsync(`git rev-parse "${firstCheckpoint.commitHash}^"`, { cwd: this.config.cwd });
+        return stdout.trim();
+      } catch {
+        return null;
+      }
+    });
   }
 
   /**
-   * Rollback all Ralph changes (to state before Ralph started)
+   * Rollback all Ralph changes (mutex-protected)
    */
   async rollbackAll(): Promise<boolean> {
-    const initialCommit = await this.getInitialCommit();
-    if (!initialCommit) {
-      warn('No checkpoints to rollback');
-      return false;
-    }
-    
-    return this.hardRollbackTo(initialCommit);
+    return this.gitMutex.runExclusive(async () => {
+      if (this.checkpoints.length === 0) {
+        warn('No checkpoints to rollback');
+        return false;
+      }
+
+      const firstCheckpoint = this.checkpoints[0];
+      if (!firstCheckpoint) return false;
+
+      try {
+        const { stdout } = await execAsync(`git rev-parse "${firstCheckpoint.commitHash}^"`, { cwd: this.config.cwd });
+        const initialCommit = stdout.trim();
+        return this.hardRollbackToUnsafe(initialCommit);
+      } catch {
+        warn('Cannot find initial commit for rollback');
+        return false;
+      }
+    });
   }
 
   /**
-   * Create a task completion checkpoint commit
+   * Create a task completion checkpoint commit (mutex-protected)
    */
   async createTaskCheckpoint(
     taskTitle: string,
@@ -298,59 +363,61 @@ export class CheckpointManager {
       return null;
     }
 
-    // Check if there are changes to commit
-    const hasChanges = await this.hasChangesToCommit();
-    if (!hasChanges) {
-      debug('No changes to commit for task checkpoint');
-      return null;
-    }
+    return this.gitMutex.runExclusive(async () => {
+      // Check if there are changes to commit
+      const hasChanges = await this.hasChangesToCommitUnsafe();
+      if (!hasChanges) {
+        debug('No changes to commit for task checkpoint');
+        return null;
+      }
 
-    // Get list of modified files before staging
-    const filesModified = await this.getModifiedFiles();
+      // Get list of modified files before staging
+      const filesModified = await this.getModifiedFilesUnsafe();
 
-    // Stage all changes
-    const staged = await this.stageAllChanges();
-    if (!staged) {
-      return null;
-    }
+      // Stage all changes
+      const staged = await this.stageAllChangesUnsafe();
+      if (!staged) {
+        return null;
+      }
 
-    // Build commit message for task completion
-    const truncatedTitle = taskTitle.length > 40 
-      ? taskTitle.substring(0, 37) + '...'
-      : taskTitle;
-    
-    const message = `${this.config.messagePrefix} task complete - ${truncatedTitle}`;
-    const fullMessage = `${message}\n\nTask ID: ${taskId}\nSummary: ${summary}\nFiles modified: ${filesModified.length}`;
-
-    try {
-      // Create commit
-      await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+      // Build commit message for task completion
+      const truncatedTitle = taskTitle.length > 40 
+        ? taskTitle.substring(0, 37) + '...'
+        : taskTitle;
       
-      // Get commit hash
-      const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
-      const commitHash = stdout.trim();
+      const message = `${this.config.messagePrefix} task complete - ${truncatedTitle}`;
+      const fullMessage = `${message}\n\nTask ID: ${taskId}\nSummary: ${summary}\nFiles modified: ${filesModified.length}`;
 
-      const checkpoint: Checkpoint = {
-        iteration: 0, // Task-level checkpoint, not iteration-level
-        commitHash,
-        message,
-        filesModified,
-        timestamp: new Date(),
-        tokensUsed: 0,
-      };
+      try {
+        // Create commit
+        await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+        
+        // Get commit hash
+        const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
+        const commitHash = stdout.trim();
 
-      this.checkpoints.push(checkpoint);
-      debug(`Created task checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
-      
-      return checkpoint;
-    } catch (err) {
-      warn('Failed to create task checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
-      return null;
-    }
+        const checkpoint: Checkpoint = {
+          iteration: 0, // Task-level checkpoint, not iteration-level
+          commitHash,
+          message,
+          filesModified,
+          timestamp: new Date(),
+          tokensUsed: 0,
+        };
+
+        this.checkpoints.push(checkpoint);
+        debug(`Created task checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
+        
+        return checkpoint;
+      } catch (err) {
+        warn('Failed to create task checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
+        return null;
+      }
+    });
   }
 
   /**
-   * Create a failure checkpoint commit (preserves state for post-mortem)
+   * Create a failure checkpoint commit (mutex-protected)
    */
   async createFailureCheckpoint(
     taskTitle: string,
@@ -363,56 +430,58 @@ export class CheckpointManager {
       return null;
     }
 
-    // Check if there are changes to commit
-    const hasChanges = await this.hasChangesToCommit();
-    if (!hasChanges) {
-      debug('No changes to commit for failure checkpoint');
-      return null;
-    }
+    return this.gitMutex.runExclusive(async () => {
+      // Check if there are changes to commit
+      const hasChanges = await this.hasChangesToCommitUnsafe();
+      if (!hasChanges) {
+        debug('No changes to commit for failure checkpoint');
+        return null;
+      }
 
-    // Get list of modified files before staging
-    const filesModified = await this.getModifiedFiles();
+      // Get list of modified files before staging
+      const filesModified = await this.getModifiedFilesUnsafe();
 
-    // Stage all changes
-    const staged = await this.stageAllChanges();
-    if (!staged) {
-      return null;
-    }
+      // Stage all changes
+      const staged = await this.stageAllChangesUnsafe();
+      if (!staged) {
+        return null;
+      }
 
-    // Build commit message for task failure
-    const truncatedTitle = taskTitle.length > 30 
-      ? taskTitle.substring(0, 27) + '...'
-      : taskTitle;
-    
-    const message = `${this.config.messagePrefix} task failed (attempt ${attempt}) - ${truncatedTitle}`;
-    const errorInfo = error ? `\nError: ${error.substring(0, 200)}` : '';
-    const fullMessage = `${message}\n\nTask ID: ${taskId}\nAttempt: ${attempt}${errorInfo}\nFiles modified: ${filesModified.length}`;
-
-    try {
-      // Create commit
-      await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+      // Build commit message for task failure
+      const truncatedTitle = taskTitle.length > 30 
+        ? taskTitle.substring(0, 27) + '...'
+        : taskTitle;
       
-      // Get commit hash
-      const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
-      const commitHash = stdout.trim();
+      const message = `${this.config.messagePrefix} task failed (attempt ${attempt}) - ${truncatedTitle}`;
+      const errorInfo = error ? `\nError: ${error.substring(0, 200)}` : '';
+      const fullMessage = `${message}\n\nTask ID: ${taskId}\nAttempt: ${attempt}${errorInfo}\nFiles modified: ${filesModified.length}`;
 
-      const checkpoint: Checkpoint = {
-        iteration: 0, // Task-level checkpoint
-        commitHash,
-        message,
-        filesModified,
-        timestamp: new Date(),
-        tokensUsed: 0,
-      };
+      try {
+        // Create commit
+        await execAsync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, { cwd: this.config.cwd });
+        
+        // Get commit hash
+        const { stdout } = await execAsync('git rev-parse HEAD', { cwd: this.config.cwd });
+        const commitHash = stdout.trim();
 
-      this.checkpoints.push(checkpoint);
-      debug(`Created failure checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
-      
-      return checkpoint;
-    } catch (err) {
-      warn('Failed to create failure checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
-      return null;
-    }
+        const checkpoint: Checkpoint = {
+          iteration: 0, // Task-level checkpoint
+          commitHash,
+          message,
+          filesModified,
+          timestamp: new Date(),
+          tokensUsed: 0,
+        };
+
+        this.checkpoints.push(checkpoint);
+        debug(`Created failure checkpoint: ${commitHash.substring(0, 7)} - ${message}`);
+        
+        return checkpoint;
+      } catch (err) {
+        warn('Failed to create failure checkpoint commit: ' + (err instanceof Error ? err.message : String(err)));
+        return null;
+      }
+    });
   }
 }
 
