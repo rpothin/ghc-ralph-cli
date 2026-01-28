@@ -162,6 +162,9 @@ ghcralph run --github
 # Pause between tasks for human review (strict Ralph mode)
 ghcralph run --file PLAN.md --pause-between-tasks
 
+# Push changes to remote after completion
+ghcralph run --file PLAN.md --push
+
 # Specify context files
 ghcralph run --task "Fix tests" --context "src/**/*.test.ts"
 
@@ -200,7 +203,7 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 | `maxRetriesPerTask` | `2`         | Retries per task before marking as failed                                       |
 | `autoPush`          | `false`     | Auto-push to remote after task completion                                       |
 | `pushStrategy`      | `per-task`  | When to push: `per-task`, `per-run`, or `manual`                                |
-| `progressVerbosity` | `standard`  | Progress file detail level: `minimal`, `standard`, or `full`                    |
+| `progressVerbosity` | `standard`  | Progress file detail level: `minimal`, `standard` (+ actions), or `full` |
 | `githubRepo`        | -           | GitHub repository (owner/repo) for GitHub plan source                           |
 | `githubLabel`       | -           | Default GitHub issue label filter for GitHub plan                               |
 | `githubMilestone`   | -           | Default GitHub issue milestone filter for GitHub plan                           |

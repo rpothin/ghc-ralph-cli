@@ -1632,3 +1632,35 @@ After testing v0.1.3 in the ghc-ralph-cli-demo repository, we identified 4 issue
 - `npm run lint` ✅
 - `npm test` ✅ (311 tests passing)
 - Version bumped to 0.1.4
+
+## 2026-01-28 - v0.1.4 Documentation Updates
+
+### Context
+Updated documentation to reflect v0.1.4 changes.
+
+### Changes Made
+
+**README.md:**
+- Added `--push` flag to "Advanced Run Options" section
+- Updated `progressVerbosity` description to note actions are shown at standard level
+
+**docs/cookbook.md:**
+- Added `--push` flag example in Multi-Task Processing section
+- Updated Progress Verbosity descriptions (standard now includes actions)
+- Enhanced Push troubleshooting section with `--push` flag usage
+
+**docs/architecture.md:**
+- Added new "v0.1.4 Enhancements" section documenting:
+  - Commit Message Quality (`[COMMIT_MESSAGE]` block)
+  - Session-Based Progress Tracking
+  - Push CLI Flag
+  - Standard Verbosity Actions
+
+### Files Modified
+- `README.md`
+- `docs/cookbook.md`
+- `docs/architecture.md`
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅

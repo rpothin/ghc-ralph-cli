@@ -108,6 +108,9 @@ ghcralph run --file TODO.md
 
 # Pause between tasks for human review (strict Ralph mode)
 ghcralph run --file TODO.md --pause-between-tasks
+
+# Push changes to remote after completion
+ghcralph run --file TODO.md --push
 ```
 
 **Configuration:**
@@ -127,8 +130,8 @@ ghcralph run --file TODO.md --pause-between-tasks
 
 **Progress Verbosity:**
 - `minimal`: Just iteration headers (for CI)
-- `standard` (default): Tokens, summary, duration
-- `full`: Standard + raw AI response + actions (for debugging)
+- `standard` (default): Tokens, summary, duration, executed actions
+- `full`: Standard + raw AI response (for debugging)
 
 ---
 
@@ -392,7 +395,10 @@ Check your push configuration:
 ghcralph config get autoPush
 ghcralph config get pushStrategy
 
-# Enable auto-push
+# Enable auto-push for a single run (no config change)
+ghcralph run --file PLAN.md --push
+
+# Enable auto-push permanently
 ghcralph config set autoPush true
 
 # Set push strategy (per-task, per-run, or manual)
@@ -415,8 +421,8 @@ ghcralph config set progressVerbosity full
 
 **Verbosity Levels:**
 - `minimal`: Just iteration header (for CI)
-- `standard`: Tokens, summary, duration (default)
-- `full`: Standard + raw AI response + executed actions
+- `standard`: Tokens, summary, duration, executed actions (default)
+- `full`: Standard + raw AI response
 
 ---
 
