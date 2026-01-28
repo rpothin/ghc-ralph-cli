@@ -486,6 +486,11 @@ See also:
           // Setup event listeners
           const events = engine.getEvents();
 
+          // Iteration checkpoint commits are intentionally started asynchronously so the loop can continue,
+          // but we still need to wait for them at task end so the CLI can exit immediately after printing
+          // the final success line.
+          let checkpointQueue: Promise<void> = Promise.resolve();
+
           events.on('iterationStart', (iteration, state) => {
             debug(
               `Iteration ${iteration}/${maxIterations} - Tokens: ${state.tokensUsed.toLocaleString()}`
@@ -500,17 +505,22 @@ See also:
             if (record.summary) {
               console.log(`  ${dim(record.summary)}`);
             }
-            
+
             // Create checkpoint commit after successful iterations
             if (record.success && checkpointManager.isAutoCommitEnabled()) {
               // Build task context for commit message if we have plan info
               const taskContext: TaskContext | undefined = totalTasksInPlan > 0
                 ? { taskNumber: totalTasksProcessed, totalTasks: totalTasksInPlan }
                 : undefined;
-              
-              checkpointManager
-                .createCheckpoint(record.iteration, record.summary ?? 'iteration complete', record.tokensUsed, taskContext)
-                .then((checkpoint) => {
+
+              checkpointQueue = checkpointQueue
+                .then(async () => {
+                  const checkpoint = await checkpointManager.createCheckpoint(
+                    record.iteration,
+                    record.summary ?? 'iteration complete',
+                    record.tokensUsed,
+                    taskContext
+                  );
                   if (checkpoint) {
                     debug(`Checkpoint created: ${checkpoint.commitHash.substring(0, 7)}`);
                     // Update progress with commit hash
@@ -518,10 +528,10 @@ See also:
                   }
                 })
                 .catch(() => {
-                  // Ignore checkpoint errors
+                  // Ignore checkpoint errors (keep queue alive)
                 });
             }
-            
+
             // Update in-memory progress state (file written at task completion)
             progressTracker.setCurrentTask(totalTasksProcessed, state);
           });
@@ -540,6 +550,10 @@ See also:
 
           try {
             const finalState = await engine.start(activeTask);
+
+            // Flush any queued iteration checkpoint commits before we stop spinners / print final output.
+            await checkpointQueue;
+            checkpointQueue = Promise.resolve();
 
             loopSpinner.stop();
             console.log('');

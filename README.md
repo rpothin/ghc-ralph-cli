@@ -325,6 +325,14 @@ Check status: `ghcralph status`
 View checkpoints: `ghcralph rollback --list`  
 Rollback if needed: `ghcralph rollback`
 
+### Long delay before returning to prompt
+`ghcralph run` creates git checkpoint commits (and may auto-push depending on config). If your repo has slow git hooks (e.g. Husky), commit signing, or Git LFS filters, the command may take extra time to finish.
+
+Mitigations:
+- Disable checkpoints: set `autoCommit: false` (or `GHCRALPH_AUTO_COMMIT=false`)
+- Disable pushing: set `autoPush: false` / `pushStrategy: manual`
+- Inspect/disable slow hooks in `.git/hooks/` (or Husky scripts) if appropriate
+
 ## Credits & Attribution
 
 **GitHub Copilot Ralph** is an opinionated interpretation of the **Ralph Wiggum loop** approach, originally proposed by **[Geoffrey Huntley](https://ghuntley.com/)**.

@@ -1710,3 +1710,35 @@ The `git-branch-manager.test.ts` test was failing on Windows CI due to:
 - `npm run build` ✅
 - `npm run lint` ✅
 - `npm test` ✅ (311 tests passing)
+
+## 2026-01-28 - Fix Post-Run Exit Delay
+
+### Context
+After `✔ 🎉 All 11 tasks completed successfully!` appeared, there was a long delay before terminal control returned to the user. Investigation revealed un-awaited async git checkpoint commits kept the Node.js event loop alive after the final success message printed.
+
+### Root Cause
+The `run` command subscribed to `LoopEngine`'s `iterationEnd` event and started `checkpointManager.createCheckpoint(...)` asynchronously without awaiting it. These git operations (which invoke hooks, LFS, signing, or push operations) could continue running after "All tasks completed" was printed, delaying `process.exit()`.
+
+### Changes Made
+1. **src/commands/run.ts**
+   - Added a `checkpointQueue: Promise<void>` to serialize iteration checkpoint commits
+   - Replaced fire-and-forget `.createCheckpoint(...).then(...)` with chaining onto the queue
+   - Added `await checkpointQueue` immediately after `await engine.start(activeTask)` to flush pending commits before printing final output
+
+2. **README.md**
+   - Added new Troubleshooting section: "Long delay before returning to prompt"
+   - Explains git checkpoint work (hooks/signing/LFS) can add latency
+   - Lists mitigations: disable `autoCommit`, disable `autoPush`, inspect/disable slow hooks
+
+### Impact
+- CLI now promptly returns control to the user after final success message
+- Checkpoint commits still run (ensuring safety) but don't block the exit path
+- Provides users with mitigation options for slow git operations
+
+### Files Modified
+- `src/commands/run.ts`
+- `README.md`
+
+### Validation
+- `npm run build` ✅
+- `npm test` ✅ (311 tests passing)
