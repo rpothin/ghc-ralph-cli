@@ -110,7 +110,7 @@ describe('CopilotAgent', () => {
 
   describe('listAvailableModels', () => {
     it('returns models from SDK when available', async (): Promise<void> => {
-      mockListModels = async () => [
+      mockListModels = async (): Promise<Array<{ id: string; name: string; capabilities: object }>> => [
         { id: 'gpt-4.1', name: 'GPT-4.1', capabilities: { supports: { vision: false } } },
         { id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', capabilities: { supports: { vision: true } } },
       ];
@@ -123,7 +123,7 @@ describe('CopilotAgent', () => {
     });
 
     it('returns empty array when SDK fetch fails', async (): Promise<void> => {
-      mockListModels = async () => {
+      mockListModels = async (): Promise<Array<{ id: string; name: string; capabilities: object }>> => {
         throw new Error('Network error');
       };
 
@@ -136,7 +136,7 @@ describe('CopilotAgent', () => {
       const agent = new CopilotAgent({ model: 'gpt-4.1' });
       await agent.initialize();
 
-      mockListModels = async () => [
+      mockListModels = async (): Promise<Array<{ id: string; name: string; capabilities: object }>> => [
         { id: 'gpt-5', name: 'GPT-5', capabilities: { supports: { vision: true } } },
       ];
 

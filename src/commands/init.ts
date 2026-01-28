@@ -143,7 +143,7 @@ async function promptSelect<T extends string>(
  * Fetch available models from the Copilot SDK
  * Falls back to hardcoded list if fetch fails
  */
-async function fetchModelOptions(currentDefault: string): Promise<Array<{ label: string; value: string }>> {
+async function fetchModelOptions(_currentDefault: string): Promise<Array<{ label: string; value: string }>> {
   debug('Fetching available models from Copilot SDK...');
   
   try {
