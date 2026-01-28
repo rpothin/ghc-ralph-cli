@@ -61,6 +61,14 @@ export const COMPLETE_EXAMPLE = `[ACTION:COMPLETE]
 reason: All tests pass. Calculator implements addition, subtraction, multiplication, and division.`;
 
 /**
+ * Example of ACTION:STUCK block (for when task cannot be completed)
+ */
+export const STUCK_EXAMPLE = `[ACTION:STUCK]
+attempted: Tried 3 different approaches to fix the syntax error in case statement
+blocker: Bash case syntax requires specific quoting for * character that conflicts with shell expansion
+suggestion: Consider using a different operator syntax or escaping approach - may need human review`;
+
+/**
  * All examples combined for inclusion in prompts
  */
 export const ALL_EXAMPLES = `
@@ -73,8 +81,11 @@ ${EDIT_EXAMPLE}
 ### Example: Run a command to test
 ${EXECUTE_EXAMPLE}
 
-### Example: Mark task complete
+### Example: Mark task complete (ONLY when tests pass!)
 ${COMPLETE_EXAMPLE}
+
+### Example: Report when stuck (be honest if you can't complete!)
+${STUCK_EXAMPLE}
 `;
 
 /**
@@ -101,9 +112,15 @@ Example EXECUTE:
 [ACTION:EXECUTE]
 command: ./file.sh
 
-Example COMPLETE:
+Example COMPLETE (only when tests pass!):
 [ACTION:COMPLETE]
 reason: Task done, tests pass
+
+Example STUCK (when you cannot complete):
+[ACTION:STUCK]
+attempted: Tried X approach
+blocker: Error Y prevents completion
+suggestion: Try Z instead
 `;
 
 /**
@@ -140,17 +157,26 @@ path: <relative file path>
 command: <shell command>
 \`\`\`
 
-**[ACTION:COMPLETE]** - Mark task as done (only when tests pass!)
+**[ACTION:COMPLETE]** - Mark task as done (ONLY when all tests pass!)
 \`\`\`
 [ACTION:COMPLETE]
 reason: <brief explanation of why task is complete>
 \`\`\`
 
+**[ACTION:STUCK]** - Report inability to complete (be honest!)
+\`\`\`
+[ACTION:STUCK]
+attempted: <what you tried>
+blocker: <what prevents completion>
+suggestion: <what might help>
+\`\`\`
+
 ## Important Rules
 1. Use EXACT text for [OLD] blocks - must match file contents precisely
 2. Use [ACTION:EXECUTE] to run tests before marking complete
-3. Only use [ACTION:COMPLETE] when verification passes
-4. One action per block - you can include multiple blocks
+3. Only use [ACTION:COMPLETE] when ALL tests pass with exit code 0
+4. Use [ACTION:STUCK] if you cannot complete - honesty is critical!
+5. One action per block - you can include multiple blocks
 `;
 
 /**

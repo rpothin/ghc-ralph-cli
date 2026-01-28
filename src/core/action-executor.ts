@@ -90,9 +90,31 @@ const DEFAULT_CONFIG: ActionExecutorConfig = {
  */
 export class ActionExecutor {
   private config: ActionExecutorConfig;
+  private failedCommands: string[] = [];
 
   constructor(config: Partial<ActionExecutorConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  /**
+   * Reset the failed commands tracking (call at start of each iteration)
+   */
+  resetFailedCommands(): void {
+    this.failedCommands = [];
+  }
+
+  /**
+   * Get list of failed commands in current iteration
+   */
+  getFailedCommands(): string[] {
+    return [...this.failedCommands];
+  }
+
+  /**
+   * Check if there were command failures in this iteration
+   */
+  hasFailedCommands(): boolean {
+    return this.failedCommands.length > 0;
   }
 
   /**
@@ -109,9 +131,24 @@ export class ActionExecutor {
       const result = await this.executeAction(action);
       results.push(result);
 
+      // Track failed EXECUTE commands for honesty checking
+      if (action.type === 'EXECUTE' && !result.success) {
+        const executeAction = action as ExecuteAction;
+        this.failedCommands.push(executeAction.command);
+      }
+
       if (action.type === 'COMPLETE' && result.success) {
         taskComplete = true;
         completionReason = (action as CompleteAction).reason;
+        
+        // Warn if COMPLETE is used despite failed commands in this iteration
+        if (this.failedCommands.length > 0) {
+          warn(`⚠️ Task marked complete despite ${this.failedCommands.length} failed command(s):`);
+          for (const cmd of this.failedCommands) {
+            warn(`   • ${cmd}`);
+          }
+          warn('This may indicate false completion - verify the implementation!');
+        }
       }
 
       if (action.type === 'STUCK' && result.success) {

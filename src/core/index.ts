@@ -27,7 +27,7 @@ export {
 } from './config-manager.js';
 export type { RalphConfiguration, ConfigKey } from './config-manager.js';
 
-export type { PlanSource } from './config-schema.js';
+export type { PlanSource, ProgressVerbosity } from './config-schema.js';
 
 export type { PlanManager, TaskFilter, PlanSourceType } from './plan-manager.js';
 
@@ -40,7 +40,7 @@ export { GitHubPlan } from './github-plan.js';
 export type { GitHubPlanConfig } from './github-plan.js';
 
 export { ProgressTracker } from './progress-tracker.js';
-export type { SessionData } from './progress-tracker.js';
+export type { SessionData, TaskResult, RunSession } from './progress-tracker.js';
 
 export { ContextBuilder, createContextBuilder } from './context-builder.js';
 export type { ContextBuilderConfig, BuiltContext } from './context-builder.js';
@@ -49,7 +49,7 @@ export { GitBranchManager, createGitBranchManager } from './git-branch-manager.j
 export type { GitBranchConfig, WorkingDirStatus, BranchInfo } from './git-branch-manager.js';
 
 export { CheckpointManager, createCheckpointManager } from './checkpoint-manager.js';
-export type { CheckpointConfig, Checkpoint } from './checkpoint-manager.js';
+export type { CheckpointConfig, Checkpoint, TaskContext } from './checkpoint-manager.js';
 
 export { FileSafeguardManager, createFileSafeguardManager } from './file-safeguard.js';
 export type { FileSafeguardConfig, BaselineSnapshot, FileOperations } from './file-safeguard.js';
@@ -95,6 +95,7 @@ export {
   DELETE_EXAMPLE,
   EXECUTE_EXAMPLE,
   COMPLETE_EXAMPLE,
+  STUCK_EXAMPLE,
   ALL_EXAMPLES,
   MINIMAL_EXAMPLES,
   FORMAT_INSTRUCTIONS,

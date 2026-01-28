@@ -58,7 +58,8 @@ describe('Prompt Examples', () => {
       expect(MINIMAL_EXAMPLES).toContain('Example CREATE:');
       expect(MINIMAL_EXAMPLES).toContain('Example EDIT:');
       expect(MINIMAL_EXAMPLES).toContain('Example EXECUTE:');
-      expect(MINIMAL_EXAMPLES).toContain('Example COMPLETE:');
+      expect(MINIMAL_EXAMPLES).toContain('Example COMPLETE');
+      expect(MINIMAL_EXAMPLES).toContain('Example STUCK');
     });
 
     it('should be shorter than ALL_EXAMPLES', () => {
@@ -72,6 +73,7 @@ describe('Prompt Examples', () => {
       expect(FORMAT_INSTRUCTIONS).toContain('[ACTION:EDIT]');
       expect(FORMAT_INSTRUCTIONS).toContain('[ACTION:EXECUTE]');
       expect(FORMAT_INSTRUCTIONS).toContain('[ACTION:COMPLETE]');
+      expect(FORMAT_INSTRUCTIONS).toContain('[ACTION:STUCK]');
     });
 
     it('should include important rules', () => {

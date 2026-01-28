@@ -41,29 +41,40 @@ const DEFAULT_PROMPT_TEMPLATE = `You are an expert software engineer. Your task 
 - Use [ACTION:COMPLETE] when tests pass and task is done`;
 
 /**
- * Honesty guidance section to encourage accurate reporting and graceful failure handling
+ * Honesty guidance section to encourage accurate reporting and graceful failure handling.
+ * This is critical for preventing false "task complete" claims when tests/commands fail.
  */
-const HONESTY_GUIDANCE = `## Failure Handling & Honesty
+const HONESTY_GUIDANCE = `## Completion Integrity Guidelines
 
-**IMPORTANT**: Be honest about your progress and limitations.
+### When to use [ACTION:COMPLETE]
+✅ All acceptance criteria from the task are met
+✅ All test commands returned exit code 0 (no errors)
+✅ No unresolved errors in modified files
+✅ You have verified the implementation works
 
-- If you **cannot complete** the task, do NOT use [ACTION:COMPLETE]
-- Instead, document what you tried and why it failed
-- Use [ACTION:EXECUTE] to verify your work before claiming completion
-- If tests fail or you encounter blocking issues, report them honestly
+### When NOT to use [ACTION:COMPLETE]
+❌ Commands failed with non-zero exit codes
+❌ Syntax errors or runtime errors exist
+❌ You're unsure if the task is fully done
+❌ There are TODO items remaining
+❌ Tests produced error output (even if you "fixed" them)
 
-**When you cannot proceed**, respond with:
+### If You Cannot Complete
+Use [ACTION:STUCK] with a clear explanation:
 \`\`\`
 [ACTION:STUCK]
-attempted: <what you tried>
-blocker: <what is preventing completion>
+attempted: <what you tried - be specific about approaches>
+blocker: <what is preventing completion - exact error or limitation>
 suggestion: <what might help - different approach, human intervention, etc.>
 \`\`\`
 
-This honest reporting helps:
-1. The next agent attempt learn from your experience
-2. Humans understand what went wrong
-3. The progress document serve as accurate documentation`;
+### Why Honest Reporting Matters
+- **False completion wastes iterations**: Later tasks may depend on broken code
+- **Progress files become unreliable**: Humans can't trust the audit trail
+- **Fresh agents can't learn**: Next attempt starts without knowing what failed
+
+IMPORTANT: Honest [ACTION:STUCK] reporting enables retry with fresh context.
+False [ACTION:COMPLETE] claims hide problems and compound technical debt.`;
 
 /**
  * Legacy prompt template with meta info (for backwards compatibility)

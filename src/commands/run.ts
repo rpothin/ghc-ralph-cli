@@ -21,6 +21,7 @@ import {
   FileSafeguardManager,
   ConfigManager,
   type PlanManager,
+  type TaskContext,
 } from '../core/index.js';
 import type { Task } from '../types/index.js';
 
@@ -400,8 +401,9 @@ See also:
         contextConfig.contextGlobs = options.context;
       }
 
-      // Create progress tracker
-      const progressTracker = new ProgressTracker(undefined, maxIterations);
+      // Create progress tracker with verbosity setting
+      const progressVerbosity = config.progressVerbosity ?? 'standard';
+      const progressTracker = new ProgressTracker(undefined, maxIterations, progressVerbosity);
 
       // Create checkpoint manager for auto-commits
       const checkpointManager = new CheckpointManager({
@@ -421,6 +423,19 @@ See also:
       let totalTasksFailed = 0;
       const maxRetriesPerTask = config.maxRetriesPerTask ?? 2;
       const autoPush = config.autoPush ?? false;
+      const pushStrategy = config.pushStrategy ?? 'per-task';
+
+      // Compute total tasks count for commit message context (if available)
+      let totalTasksInPlan = 0;
+      if (planManager) {
+        try {
+          const allTasks = await planManager.getTasks();
+          totalTasksInPlan = allTasks.length;
+        } catch {
+          // Fall back to unknown total if getTasks fails
+          totalTasksInPlan = 0;
+        }
+      }
 
       // ========== MULTI-TASK ITERATION LOOP ==========
       // This is the core fix: process ALL tasks in the plan, not just the first one
@@ -483,8 +498,13 @@ See also:
             
             // Create checkpoint commit after successful iterations
             if (record.success && checkpointManager.isAutoCommitEnabled()) {
+              // Build task context for commit message if we have plan info
+              const taskContext: TaskContext | undefined = totalTasksInPlan > 0
+                ? { taskNumber: totalTasksProcessed, totalTasks: totalTasksInPlan }
+                : undefined;
+              
               checkpointManager
-                .createCheckpoint(record.iteration, record.summary ?? 'iteration complete', record.tokensUsed)
+                .createCheckpoint(record.iteration, record.summary ?? 'iteration complete', record.tokensUsed, taskContext)
                 .then((checkpoint) => {
                   if (checkpoint) {
                     debug(`Checkpoint created: ${checkpoint.commitHash.substring(0, 7)}`);
@@ -547,19 +567,27 @@ See also:
                 `Completed in ${finalState.iteration} iterations`
               );
               
+              // Build task context for commit message if we have plan info
+              const taskContext: TaskContext | undefined = totalTasksInPlan > 0
+                ? { taskNumber: totalTasksProcessed, totalTasks: totalTasksInPlan }
+                : undefined;
+              
               // Create a task-level checkpoint commit
               await checkpointManager.createTaskCheckpoint(
                 activeTask.title,
                 activeTask.id,
-                `Task completed in ${finalState.iteration} iterations`
+                `Task completed in ${finalState.iteration} iterations`,
+                taskContext
               );
               
-              // Push to remote if configured
-              if (autoPush && isGitRepo) {
+              // Push to remote if configured (per-task strategy)
+              if (autoPush && pushStrategy === 'per-task' && isGitRepo) {
                 info('Pushing changes to remote...');
                 const pushed = await gitManager.pushToRemote();
                 if (pushed) {
                   success('Changes pushed to remote');
+                } else {
+                  warn('Failed to push changes to remote');
                 }
               }
               
@@ -668,6 +696,17 @@ See also:
       console.log(`  ${dim('Tasks failed:')} ${totalTasksFailed}`);
       console.log(`  ${dim('Elapsed time:')} ${formatElapsedTime(startTime)}`);
       console.log('');
+      
+      // Push to remote if configured (per-run strategy)
+      if (autoPush && pushStrategy === 'per-run' && isGitRepo && totalTasksCompleted > 0) {
+        info('Pushing all changes to remote...');
+        const pushed = await gitManager.pushToRemote();
+        if (pushed) {
+          success('All changes pushed to remote');
+        } else {
+          warn('Failed to push changes to remote');
+        }
+      }
       
       if (totalTasksFailed === 0 && totalTasksCompleted > 0) {
         success(`🎉 All ${totalTasksCompleted} tasks completed successfully!`);

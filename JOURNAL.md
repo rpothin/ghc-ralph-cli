@@ -1340,3 +1340,203 @@ Following the multi-task loop fix, analyzed the `MODEL_COMPAT_TEST_PLAN.md` to a
 - `npm run typecheck` ✅
 - `npm test` ✅ (305 tests passing)
 - `npm run build` ✅
+
+## 2026-01-28 - v0.1.3 Remediation: Phase 1 Critical Fixes
+
+### Context
+Testing v0.1.2 on the demo repository revealed 6 issues requiring fixes. This entry covers Phase 1 (Critical Fixes) from the remediation plan.
+
+### Issue #1: Progress File Not Persisting Task History
+
+**Problem**: The progress file only contained information about the last task processed. All previous tasks' iteration logs were lost when a new task began.
+
+**Solution**: Implemented in-memory accumulation with session-based tracking:
+- Added `RunSession` interface to track all tasks across a multi-task run
+- Added `TaskResult` interface to capture complete task history including iterations
+- New methods: `startSession()`, `setCurrentTask()`, `recordTaskCompletion()`, `getSession()`, `getCompletedTaskCount()`
+- `generateFullSessionMarkdown()` produces complete history with all task iterations
+- Full history is written to progress.md after each task completion
+
+**Files Modified**:
+- `src/core/progress-tracker.ts` - Session-based multi-task tracking
+- `src/core/progress-tracker.test.ts` - 6 new tests for session tracking
+- `src/core/index.ts` - Export new types (TaskResult, RunSession)
+
+### Issue #3: Git Lock File Race Conditions
+
+**Problem**: Multiple git operations failed due to concurrent access:
+```
+fatal: Unable to create '.git/index.lock': File exists.
+fatal: cannot lock ref 'HEAD': is at X but expected Y
+```
+
+**Solution**: Added mutex protection using `async-mutex` package:
+- All git operations now serialized through `gitMutex.runExclusive()`
+- Internal `*Unsafe()` methods for mutex-already-held contexts
+- Prevents race conditions between checkpoint creation and other git operations
+
+**Files Modified**:
+- `src/core/checkpoint-manager.ts` - Added mutex protection to all git operations
+- `package.json` - Added `async-mutex` dependency
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing, +6 new tests)
+- `npm run build` ✅
+
+## 2026-01-28 - v0.1.3 Remediation: Phase 2 Reliability Improvements
+
+### Context
+Continuing the v0.1.3 remediation plan with Phase 2 (Reliability Improvements).
+
+### Issue #4: Prompt Engineering for Honesty
+
+**Problem**: The AI sometimes reported tasks as COMPLETE when they weren't fully working. No explicit guidance existed about honest completion reporting.
+
+**Solution**: Enhanced prompt engineering with HONESTY_GUIDANCE section:
+- Added comprehensive HONESTY_GUIDANCE to context-builder.ts with:
+  - "Never use COMPLETE if commands failed or you're uncertain"
+  - "If stuck, use STUCK action with details about the blocker"
+  - Examples of honest vs dishonest completion scenarios
+- Added STUCK_EXAMPLE to prompt-examples.ts showing proper STUCK action format
+- Updated FORMAT_INSTRUCTIONS and MINIMAL_EXAMPLES to include STUCK action
+- Added failure warning in ActionExecutor: warns when COMPLETE used despite failed commands
+
+**Files Modified**:
+- `src/core/context-builder.ts` - Enhanced HONESTY_GUIDANCE section
+- `src/core/prompt-examples.ts` - Added STUCK_EXAMPLE, updated FORMAT_INSTRUCTIONS
+- `src/core/prompt-examples.test.ts` - Updated test expectations
+- `src/core/action-executor.ts` - Failed command tracking and COMPLETE warning
+- `src/core/index.ts` - Export STUCK_EXAMPLE
+
+### Issue #2: Git Push Implementation
+
+**Problem**: The CLI commits changes but doesn't push them to remote, leaving changes only on local branch.
+
+**Solution**: Added configurable `pushStrategy` option:
+- New config option: `pushStrategy?: 'per-task' | 'per-run' | 'manual'`
+  - `per-task` (default): Push after each task completes
+  - `per-run`: Push once at the end of the run
+  - `manual`: No automatic push
+- Integrated into run command flow with proper error handling
+- Respects existing autoPush setting (autoPush=false disables all pushing)
+
+**Files Modified**:
+- `src/core/config-schema.ts` - Added pushStrategy config option with validation
+- `src/commands/run.ts` - Implemented pushStrategy logic (per-task and per-run)
+- `src/core/config-schema.test.ts` - Updated CONFIG_KEYS test
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing)
+- `npm run build` ✅
+
+## 2026-01-28 - v0.1.3 Remediation: Phase 3 UX Polish
+
+### Context
+Completing the v0.1.3 remediation plan with Phase 3 (UX Polish).
+
+### Issue #6: Git Commit Message Format
+
+**Problem**: Every task started with "iteration 1", making git history confusing. No global context of task position in plan.
+
+**Solution**: Added task X/Y numbering to commit messages:
+- New `TaskContext` interface with `taskNumber` and `totalTasks`
+- Updated `createCheckpoint()` to format: `ghcralph: task X/Y iter N - summary`
+- Updated `createTaskCheckpoint()` to format: `ghcralph: task X/Y complete - title`
+- Falls back to old format when no plan context available (single tasks)
+- Task count computed from `planManager.getTasks()` at run start
+
+**Files Modified**:
+- `src/core/checkpoint-manager.ts` - TaskContext interface, updated message formatting
+- `src/core/index.ts` - Export TaskContext type
+- `src/commands/run.ts` - Compute totalTasksInPlan and pass TaskContext to checkpoints
+
+### Issue #5: Progress File Verbosity
+
+**Problem**: Progress file only contained minimal summary, not useful for debugging.
+
+**Solution**: Added configurable `progressVerbosity` option:
+- New config option: `progressVerbosity?: 'minimal' | 'standard' | 'full'`
+  - `minimal`: Just iteration header and status (for CI)
+  - `standard` (default): Tokens, summary, error, duration
+  - `full`: Standard + raw response + actions executed
+- ProgressTracker constructor accepts verbosity parameter
+- Extended `IterationRecord` with optional `rawResponse` and `actions` fields
+
+**Files Modified**:
+- `src/core/config-schema.ts` - Added ProgressVerbosity type and config option
+- `src/core/progress-tracker.ts` - Verbosity-aware formatIteration()
+- `src/core/loop-state.ts` - Extended IterationRecord interface
+- `src/core/index.ts` - Export ProgressVerbosity type
+- `src/commands/run.ts` - Pass progressVerbosity to ProgressTracker
+
+### Documentation Updates
+
+**Problem**: README didn't document new configuration options.
+
+**Solution**: Updated README.md with:
+- New config options: `pushStrategy`, `progressVerbosity` in table
+- New environment variables: `GHCRALPH_PUSH_STRATEGY`, `GHCRALPH_PROGRESS_VERBOSITY`
+- Updated example config file with new options
+- Updated checkpoint message format documentation
+
+**Files Modified**:
+- `README.md` - Configuration tables and examples
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing)
+- `npm run build` ✅
+
+---
+
+## Summary: v0.1.3 Remediation Complete
+
+All 6 issues from the v0.1.3 remediation plan have been addressed:
+
+| Issue | Description | Solution |
+|-------|-------------|----------|
+| #1 | Progress file not persisting task history | Session-based multi-task tracking |
+| #2 | CLI doesn't push to remote | Configurable pushStrategy |
+| #3 | Git lock race conditions | Mutex-protected git operations |
+| #4 | AI claims completion despite failures | Honesty guidance + COMPLETE warning |
+| #5 | Insufficient iteration log detail | Configurable progressVerbosity |
+| #6 | Confusing commit message format | Task X/Y numbering in messages |
+
+**Total tests**: 311 passing
+**New features**: 3 config options (pushStrategy, progressVerbosity, task context)
+**Dependencies added**: async-mutex
+
+## 2026-01-28 - Documentation Alignment for v0.1.3
+
+### Context
+Reviewed and updated all documentation to align with v0.1.3 changes.
+
+### Changes to docs/architecture.md
+- Added 6 new issues to "Identified Issues" table (all marked as fixed in v0.1.3)
+- Added new "v0.1.3 Enhancements" section with detailed documentation:
+  - Session-based progress tracking (RunSession, TaskResult interfaces)
+  - Git mutex protection (async-mutex usage)
+  - Configurable push strategy (per-task/per-run/manual)
+  - Progress verbosity configuration (minimal/standard/full)
+  - Task-numbered commit messages (task X/Y format)
+  - Honesty guidance and failure warnings
+- Updated Summary checklist with new capabilities
+
+### Changes to docs/cookbook.md
+- Updated multi-task configuration example with new options
+- Added Push Strategies documentation section
+- Added Progress Verbosity documentation section
+- Added new troubleshooting sections:
+  - Git lock errors (now fixed with mutex)
+  - Push to remote configuration
+  - Progress file verbosity settings
+
+### Files Modified
+- `docs/architecture.md` - v0.1.3 feature documentation
+- `docs/cookbook.md` - Configuration examples and troubleshooting
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing)
