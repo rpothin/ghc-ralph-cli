@@ -459,6 +459,12 @@ graph LR
 | **Model sensitivity**          | Weaker models perform poorly             | Prompt relies on implicit understanding | ✅ FIXED |
 | **Single task per run**        | Only first task processed, then exits    | No outer loop for multi-task iteration  | ✅ FIXED v0.1.2 |
 | **Hardcoded model list**       | Init shows outdated model options        | Model list not fetched from SDK         | ✅ FIXED v0.1.2 |
+| **Progress file not persisting** | Task history lost between tasks        | No session-based accumulation           | ✅ FIXED v0.1.3 |
+| **Git lock race conditions**   | Concurrent git ops fail with lock errors | No mutex protection for git operations  | ✅ FIXED v0.1.3 |
+| **False completion claims**    | AI claims COMPLETE despite failures      | No honesty guidance in prompts          | ✅ FIXED v0.1.3 |
+| **No auto-push to remote**     | Changes stay on local branch only        | No push implementation                  | ✅ FIXED v0.1.3 |
+| **Confusing commit messages**  | Every task shows "iteration 1"           | No task X/Y context in messages         | ✅ FIXED v0.1.3 |
+| **Insufficient progress detail** | Progress file lacks debugging info     | No configurable verbosity               | ✅ FIXED v0.1.3 |
 
 ### Current vs Expected Flow
 
@@ -927,6 +933,11 @@ The current architecture successfully:
 - ✅ Executes file and shell actions
 - ✅ Supports graceful failure with STUCK action
 - ✅ Dynamic model discovery from SDK
+- ✅ **Session-based progress persistence** (v0.1.3)
+- ✅ **Mutex-protected git operations** (v0.1.3)
+- ✅ **Configurable push strategy** (v0.1.3)
+- ✅ **Configurable progress verbosity** (v0.1.3)
+- ✅ **Task X/Y numbered commits** (v0.1.3)
 
 The CLI has evolved from a "chat wrapper" to a true "agent executor" that:
 1. Defines explicit action formats (CREATE, EDIT, DELETE, EXECUTE, COMPLETE, STUCK)
@@ -934,3 +945,145 @@ The CLI has evolved from a "chat wrapper" to a true "agent executor" that:
 3. Executes actions on the filesystem
 4. Provides feedback to inform subsequent iterations
 5. Processes multiple tasks with task-level retries and checkpoints
+6. Persists full task history across multi-task runs (v0.1.3)
+7. Prevents git race conditions with mutex protection (v0.1.3)
+
+---
+
+## v0.1.3 Enhancements
+
+### Session-Based Progress Tracking
+
+The progress tracker now maintains full history across multi-task runs:
+
+```typescript
+// src/core/progress-tracker.ts
+interface RunSession {
+  startTime: Date;
+  branch?: string;
+  totalTasks?: number;
+  completedTasks: TaskResult[];  // Full history of all completed tasks
+  currentTask?: {
+    taskId: string;
+    taskTitle: string;
+    taskNumber: number;
+    state: FullLoopState;
+  };
+}
+```
+
+**Key Methods:**
+- `startSession(branch?, totalTasks?)` - Initialize session tracking
+- `setCurrentTask(task, taskNumber)` - Update current task context
+- `recordTaskCompletion(result)` - Archive completed task with all iterations
+- `generateFullSessionMarkdown()` - Output complete history to progress.md
+
+### Git Mutex Protection
+
+All git operations are now serialized via `async-mutex` to prevent race conditions:
+
+```typescript
+// src/core/checkpoint-manager.ts
+import { Mutex } from 'async-mutex';
+
+class CheckpointManager {
+  private gitMutex = new Mutex();
+
+  async createCheckpoint(iteration, summary, tokens, taskContext?) {
+    return this.gitMutex.runExclusive(async () => {
+      // All git operations protected
+    });
+  }
+}
+```
+
+**Protected Operations:**
+- `createCheckpoint()` - Iteration commits
+- `createTaskCheckpoint()` - Task completion commits
+- `createFailureCheckpoint()` - Failure documentation
+- `rollbackTo()`, `hardRollbackTo()`, `rollbackAll()` - Rollback operations
+
+### Configurable Push Strategy
+
+New `pushStrategy` configuration option:
+
+| Strategy | Behavior | Use Case |
+|----------|----------|----------|
+| `per-task` (default) | Push after each task completes | Continuous backup |
+| `per-run` | Push once at end of run | Batch operations |
+| `manual` | Never auto-push | Full local control |
+
+```json
+{
+  "autoPush": true,
+  "pushStrategy": "per-task"
+}
+```
+
+### Progress Verbosity Configuration
+
+New `progressVerbosity` configuration option:
+
+| Level | Content | Use Case |
+|-------|---------|----------|
+| `minimal` | Just iteration header | CI environments |
+| `standard` (default) | Tokens, summary, duration | Normal use |
+| `full` | Standard + raw response + actions | Debugging |
+
+```json
+{
+  "progressVerbosity": "full"
+}
+```
+
+### Task-Numbered Commit Messages
+
+Commits now include task position context:
+
+```
+# Iteration commits
+ghcralph: task 3/11 iter 1 - Created calculator script
+ghcralph: task 3/11 iter 2 - Fixed syntax error
+
+# Task completion commits  
+ghcralph: task 3/11 complete - Calculator basic operations
+```
+
+**Implementation:**
+```typescript
+interface TaskContext {
+  taskNumber: number;   // 1-indexed position
+  totalTasks: number;   // Total in plan
+}
+
+// Used by createCheckpoint() and createTaskCheckpoint()
+```
+
+### Honesty Guidance
+
+Enhanced prompt engineering to prevent false completion claims:
+
+```typescript
+// src/core/context-builder.ts - HONESTY_GUIDANCE section
+const HONESTY_GUIDANCE = `
+## Completion Integrity
+Never use [ACTION:COMPLETE] if:
+- Commands failed with non-zero exit codes
+- Syntax errors or runtime errors exist
+- You're unsure if the task is fully done
+
+If blocked, use [ACTION:STUCK] with:
+- attempted: What you tried
+- blocker: What's preventing completion
+- suggestion: Possible next steps
+`;
+```
+
+**Failure Warning:**
+The ActionExecutor now warns when COMPLETE is used despite failed commands:
+
+```typescript
+// src/core/action-executor.ts
+if (action.type === 'COMPLETE' && this.hasFailedCommands()) {
+  warn(`⚠️ Task marked complete despite ${failures.length} command failures`);
+}

@@ -114,9 +114,21 @@ ghcralph run --file TODO.md --pause-between-tasks
 ```json
 {
   "maxRetriesPerTask": 2,
-  "autoPush": false
+  "autoPush": true,
+  "pushStrategy": "per-task",
+  "progressVerbosity": "standard"
 }
 ```
+
+**Push Strategies:**
+- `per-task` (default): Push after each task completes
+- `per-run`: Push once at the end of all tasks
+- `manual`: Never auto-push (requires manual `git push`)
+
+**Progress Verbosity:**
+- `minimal`: Just iteration headers (for CI)
+- `standard` (default): Tokens, summary, duration
+- `full`: Standard + raw AI response + actions (for debugging)
 
 ---
 
@@ -359,6 +371,52 @@ git lfs install
 # Option B: remove the offending hooks (per-repo)
 rm -f .git/hooks/post-checkout .git/hooks/post-merge .git/hooks/post-commit
 ```
+
+### Git lock errors (fixed in v0.1.3)
+
+If you see errors like:
+> fatal: Unable to create '.git/index.lock': File exists.
+
+This was caused by concurrent git operations. **v0.1.3 fixes this** with mutex-protected git operations. If you're on an older version, upgrade:
+
+```bash
+npm update -g ghcralph
+```
+
+### Push to remote not working
+
+Check your push configuration:
+
+```bash
+# View current config
+ghcralph config get autoPush
+ghcralph config get pushStrategy
+
+# Enable auto-push
+ghcralph config set autoPush true
+
+# Set push strategy (per-task, per-run, or manual)
+ghcralph config set pushStrategy per-task
+```
+
+**Push Strategy Options:**
+- `per-task`: Push after each task completes (default)
+- `per-run`: Push once at end of run
+- `manual`: No auto-push (you push manually)
+
+### Progress file missing details
+
+If your progress file lacks debugging info, increase verbosity:
+
+```bash
+# Set verbosity (minimal, standard, or full)
+ghcralph config set progressVerbosity full
+```
+
+**Verbosity Levels:**
+- `minimal`: Just iteration header (for CI)
+- `standard`: Tokens, summary, duration (default)
+- `full`: Standard + raw AI response + executed actions
 
 ---
 
