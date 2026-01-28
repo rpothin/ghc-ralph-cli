@@ -1087,3 +1087,98 @@ The ActionExecutor now warns when COMPLETE is used despite failed commands:
 if (action.type === 'COMPLETE' && this.hasFailedCommands()) {
   warn(`⚠️ Task marked complete despite ${failures.length} command failures`);
 }
+
+```
+
+---
+
+## v0.1.4 Enhancements
+
+### Commit Message Quality
+
+v0.1.4 introduces structured `[COMMIT_MESSAGE]` blocks for better commit message quality:
+
+**Prompt Addition:**
+```typescript
+// src/core/prompt-examples.ts
+export const COMMIT_MESSAGE_EXAMPLE = `[COMMIT_MESSAGE]
+Add division operation with error handling
+[/COMMIT_MESSAGE]`;
+```
+
+**Extraction Priority Chain:**
+```typescript
+// src/core/loop-engine.ts - extractSummary()
+// 1. Explicit [COMMIT_MESSAGE] block (preferred)
+// 2. [ACTION:COMPLETE] reason (for completions)
+// 3. First action type with context (e.g., "Create src/utils.ts")
+// 4. First non-preamble line (fallback)
+```
+
+**Word-Boundary Truncation:**
+```typescript
+// Avoids mid-word cuts like "implementati..."
+function truncateAtWord(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  const targetLen = maxLen - 3;  // Room for "..."
+  const truncated = str.substring(0, targetLen);
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > targetLen * 0.5) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  return truncated + '...';
+}
+```
+
+### Session-Based Progress Tracking
+
+v0.1.4 fixes progress file persistence to retain all task history:
+
+**Architecture:**
+```mermaid
+graph LR
+    subgraph "Old (v0.1.3)"
+        Save["save() per iteration"]
+        Overwrite["Overwrites file"]
+    end
+    
+    subgraph "New (v0.1.4)"
+        Session["startSession()"]
+        SetTask["setCurrentTask()"]
+        Record["recordTaskCompletion()"]
+        SaveFull["saveFullSession()"]
+    end
+    
+    Save --> Overwrite
+    Session --> SetTask --> Record --> SaveFull
+```
+
+**Methods Used:**
+- `startSession(branch, totalTasks)` - Initialize session tracking
+- `setCurrentTask(taskNumber, state)` - Update in-memory state per iteration
+- `recordTaskCompletion(state, status, ...)` - Add task to history and persist
+
+### Push Reminder Message
+
+v0.1.4 shows a helpful message when auto-push is disabled:
+
+```
+💡 Changes committed locally. Review and push manually with: git push
+   To enable auto-push, set "autoPush": true in .ghcralph/config.json
+```
+
+### Standard Verbosity Actions
+
+v0.1.4 includes executed actions in `standard` verbosity (previously `full` only):
+
+```markdown
+#### Iteration 1 (4:40:05 PM) ✓
+
+- **Tokens**: 1,325
+- **Summary**: Create calculator.sh
+- **Duration**: 20s
+
+**Actions**:
+- ✓ `[CREATE]` calculator.sh
+- ✓ `[EXECUTE]` chmod +x calculator.sh
+```

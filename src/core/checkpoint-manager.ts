@@ -45,6 +45,24 @@ const DEFAULT_CONFIG: CheckpointConfig = {
 };
 
 /**
+ * Truncate at word boundary to avoid mid-word cuts
+ */
+function truncateAtWord(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+
+  const ellipsis = '...';
+  const targetLen = maxLen - ellipsis.length;
+  const truncated = str.substring(0, targetLen);
+  const lastSpace = truncated.lastIndexOf(' ');
+
+  // Use word boundary if in the latter half
+  if (lastSpace > targetLen * 0.5) {
+    return truncated.substring(0, lastSpace) + ellipsis;
+  }
+  return truncated + ellipsis;
+}
+
+/**
  * Checkpoint record
  */
 export interface Checkpoint {
@@ -202,9 +220,8 @@ export class CheckpointManager {
       }
 
       // Build commit message with optional task context
-      const truncatedSummary = summary.length > 40 
-        ? summary.substring(0, 37) + '...'
-        : summary;
+      // Summary is already truncated by extractSummary(), use word-boundary truncation as safety
+      const truncatedSummary = truncateAtWord(summary, 50);
       
       let message: string;
       if (taskContext) {
@@ -406,9 +423,7 @@ export class CheckpointManager {
       }
 
       // Build commit message for task completion with optional task context
-      const truncatedTitle = taskTitle.length > 40 
-        ? taskTitle.substring(0, 37) + '...'
-        : taskTitle;
+      const truncatedTitle = truncateAtWord(taskTitle, 50);
       
       let message: string;
       if (taskContext) {

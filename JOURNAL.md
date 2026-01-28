@@ -1540,3 +1540,173 @@ Reviewed and updated all documentation to align with v0.1.3 changes.
 ### Validation
 - `npm run typecheck` ✅
 - `npm test` ✅ (311 tests passing)
+
+## 2026-01-28 - v0.1.4 Remediation Implementation
+
+### Context
+After testing v0.1.3 in the ghc-ralph-cli-demo repository, we identified 4 issues requiring remediation:
+1. **Commit Message Quality**: Preamble leaking ("I'll check...") and mid-word truncation
+2. **Progress Verbosity**: Config not applied; standard verbosity showed minimal info
+3. **Progress File Persistence**: Only last task visible; previous tasks lost on each save
+4. **Auto-Push**: No CLI flag to enable push for a single run
+
+### Issue 1: Commit Message Quality (RESOLVED)
+
+**Problem**: Commit messages contained conversational preambles and were truncated mid-word.
+
+**Solution**: Introduced explicit `[COMMIT_MESSAGE]` block in agent prompts.
+
+**Changes Made**:
+- `src/core/prompt-examples.ts`:
+  - Added `COMMIT_MESSAGE_EXAMPLE` constant
+  - Updated `FORMAT_INSTRUCTIONS` with `[COMMIT_MESSAGE]` block documentation
+  - Added commit message example to `ALL_EXAMPLES`
+- `src/core/context-builder.ts`:
+  - Added `COMMIT_MESSAGE_GUIDELINES` constant with formatting rules
+  - Updated prompt template to include `{commit_message_guidelines}` placeholder
+  - Added replacement logic in `buildContext()` method
+- `src/core/loop-engine.ts`:
+  - Completely rewrote `extractSummary()` with priority-based extraction:
+    1. `[COMMIT_MESSAGE]` block (preferred)
+    2. `[ACTION:COMPLETE]` reason (fallback)
+    3. First action type with context (fallback)
+    4. First non-preamble line (last resort)
+  - Added `truncateAtWord()` helper for word-boundary truncation
+- `src/core/checkpoint-manager.ts`:
+  - Added `truncateAtWord()` helper function
+  - Replaced character-based truncation with word-boundary truncation
+
+### Issue 2: Progress Verbosity (RESOLVED)
+
+**Problem**: `progressVerbosity` config was ignored; `rawResponse` and `actions` never populated.
+
+**Solution**: Capture data in loop engine and differentiate verbosity levels in formatter.
+
+**Changes Made**:
+- `src/core/loop-engine.ts`:
+  - After `completeIteration()`, attach `rawResponse` and `actions` to the record
+  - Actions derived from `executionResult.results` with type, success, summary
+- `src/core/progress-tracker.ts`:
+  - Updated `formatIteration()` to show actions for `standard` and `full` verbosity
+  - Moved raw response output to `full` verbosity only
+  - Changed actions format to use bullet points with backtick-wrapped types
+
+### Issue 3: Progress File Persistence (RESOLVED)
+
+**Problem**: `save()` overwrote entire file each iteration, losing previous task history.
+
+**Solution**: Wire up the existing session-based architecture that was implemented but unused.
+
+**Changes Made**:
+- `src/commands/run.ts`:
+  - Added import for `createInitialState` and `FullLoopState` types
+  - Called `progressTracker.startSession()` after tracker creation
+  - Replaced `progressTracker.save()` with `progressTracker.setCurrentTask()` in iterationEnd
+  - Replaced all `appendTaskResult()` calls with `recordTaskCompletion()`
+  - Created minimal error state for exception catch block
+
+### Issue 4: Auto-Push CLI Flag (RESOLVED)
+
+**Problem**: No way to enable push for a single run without config change.
+
+**Solution**: Added `--push` flag that overrides config setting.
+
+**Changes Made**:
+- `src/commands/run.ts`:
+  - Added `push?: boolean` to `RunOptions` interface
+  - Added `.option('--push', 'Push changes to remote after completion')`
+  - Updated autoPush logic: `options.push === true || (config.autoPush ?? false)`
+  - Added informational message when push is disabled but changes were made
+  - Added example in help text: `$ ghcralph run --file PLAN.md --push`
+
+### Files Modified
+- `src/core/prompt-examples.ts` - COMMIT_MESSAGE block and examples
+- `src/core/context-builder.ts` - Commit message guidelines
+- `src/core/loop-engine.ts` - extractSummary rewrite, rawResponse/actions capture
+- `src/core/checkpoint-manager.ts` - Word-boundary truncation
+- `src/core/progress-tracker.ts` - Standard verbosity actions display
+- `src/commands/run.ts` - Session-based tracking, --push flag
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (311 tests passing)
+- Version bumped to 0.1.4
+
+## 2026-01-28 - v0.1.4 Documentation Updates
+
+### Context
+Updated documentation to reflect v0.1.4 changes.
+
+### Changes Made
+
+**README.md:**
+- Added `--push` flag to "Advanced Run Options" section
+- Updated `progressVerbosity` description to note actions are shown at standard level
+
+**docs/cookbook.md:**
+- Added `--push` flag example in Multi-Task Processing section
+- Updated Progress Verbosity descriptions (standard now includes actions)
+- Enhanced Push troubleshooting section with `--push` flag usage
+
+**docs/architecture.md:**
+- Added new "v0.1.4 Enhancements" section documenting:
+  - Commit Message Quality (`[COMMIT_MESSAGE]` block)
+  - Session-Based Progress Tracking
+  - Push CLI Flag
+  - Standard Verbosity Actions
+
+### Files Modified
+- `README.md`
+- `docs/cookbook.md`
+- `docs/architecture.md`
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+
+## 2026-01-28 - v0.1.4 Remove --push Flag
+
+### Context
+After discussion, decided to remove the `--push` CLI flag to avoid confusion with the configuration-based push behavior. The configuration already provides 3 clear options:
+- `autoPush: true` + `pushStrategy: "per-task"` - Push after each task
+- `autoPush: true` + `pushStrategy: "per-run"` - Push at end of run
+- `autoPush: false` - No auto-push (manual review and push)
+
+### Changes Made
+- Removed `push?: boolean` from `RunOptions` interface
+- Removed `.option('--push', ...)` from command definition
+- Removed example from help text
+- Reverted `autoPush` logic to use config only
+- Updated informational message to be more helpful:
+  - "💡 Changes committed locally. Review and push manually with: git push"
+  - "   To enable auto-push, set \"autoPush\": true in .ghcralph/config.json"
+
+### Documentation Updated
+- `README.md` - Removed --push from Advanced Run Options
+- `docs/cookbook.md` - Removed --push examples, updated push troubleshooting
+- `docs/architecture.md` - Replaced "Push CLI Flag" section with "Push Reminder Message"
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (311 tests passing)
+
+## 2026-01-28 - Fix Windows CI Test Timeout
+
+### Context
+The `git-branch-manager.test.ts` test was failing on Windows CI due to:
+1. Test timeout (5000ms default) - git operations are slower on Windows
+2. EBUSY file lock error during temp directory cleanup
+
+### Changes Made
+- Increased timeout for "should stash modified files" test to 10000ms
+- Added retry logic and delay to afterEach cleanup for Windows compatibility
+
+### Files Modified
+- `src/core/git-branch-manager.test.ts`
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (311 tests passing)

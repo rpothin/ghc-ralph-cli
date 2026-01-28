@@ -33,7 +33,13 @@ describe('GitBranchManager', () => {
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    // Small delay to allow git processes to release file handles on Windows
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    } catch {
+      // Ignore cleanup errors on Windows
+    }
   });
 
   describe('isGitRepository', () => {
@@ -179,7 +185,7 @@ describe('GitBranchManager', () => {
       // Working directory should be clean now
       const status = await manager.getWorkingDirStatus();
       expect(status.isClean).toBe(true);
-    });
+    }, 10000); // Increased timeout for Windows
   });
 
   describe('popStash', () => {

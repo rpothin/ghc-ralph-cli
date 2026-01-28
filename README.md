@@ -200,7 +200,7 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 | `maxRetriesPerTask` | `2`         | Retries per task before marking as failed                                       |
 | `autoPush`          | `false`     | Auto-push to remote after task completion                                       |
 | `pushStrategy`      | `per-task`  | When to push: `per-task`, `per-run`, or `manual`                                |
-| `progressVerbosity` | `standard`  | Progress file detail level: `minimal`, `standard`, or `full`                    |
+| `progressVerbosity` | `standard`  | Progress file detail level: `minimal`, `standard` (+ actions), or `full` |
 | `githubRepo`        | -           | GitHub repository (owner/repo) for GitHub plan source                           |
 | `githubLabel`       | -           | Default GitHub issue label filter for GitHub plan                               |
 | `githubMilestone`   | -           | Default GitHub issue milestone filter for GitHub plan                           |
