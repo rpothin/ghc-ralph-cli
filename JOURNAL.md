@@ -1691,3 +1691,22 @@ After discussion, decided to remove the `--push` CLI flag to avoid confusion wit
 - `npm run build` ✅
 - `npm run lint` ✅
 - `npm test` ✅ (311 tests passing)
+
+## 2026-01-28 - Fix Windows CI Test Timeout
+
+### Context
+The `git-branch-manager.test.ts` test was failing on Windows CI due to:
+1. Test timeout (5000ms default) - git operations are slower on Windows
+2. EBUSY file lock error during temp directory cleanup
+
+### Changes Made
+- Increased timeout for "should stash modified files" test to 10000ms
+- Added retry logic and delay to afterEach cleanup for Windows compatibility
+
+### Files Modified
+- `src/core/git-branch-manager.test.ts`
+
+### Validation
+- `npm run build` ✅
+- `npm run lint` ✅
+- `npm test` ✅ (311 tests passing)
