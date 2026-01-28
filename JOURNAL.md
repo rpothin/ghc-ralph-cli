@@ -1226,3 +1226,117 @@ The Ralph realignment is working! The CLI now:
 - `npm run typecheck`
 - `npm test`
 - `npm run build`
+
+## 2026-01-28 - CRITICAL FIX: Multi-task plan processing loop
+
+### Problem
+The `ghcralph run --file PLAN.md` command only processed ONE task per invocation, then exited. After successfully completing the first task in a plan file, the CLI would terminate instead of continuing to the remaining tasks. This was a critical bug that broke the core functionality of the CLI.
+
+**Root Cause**: The `run` command in `src/commands/run.ts` only processed **one task per invocation**. There was no outer loop to continue processing the remaining pending tasks after the first task completed.
+
+### Fix
+Implemented Option A from the remediation plan (`plans/LOOP_MAJOR_BUG_REMEDIATION_PLAN.md`):
+
+1. **Core Multi-Task Loop** (`src/commands/run.ts`):
+   - Added outer `while (currentTask)` loop that processes ALL pending tasks
+   - Creates **fresh AI agent instance** for each task (Ralph pattern core principle)
+   - Added task-level retry loop with configurable `maxRetriesPerTask` (default: 2)
+   - Prints final summary with total tasks processed/completed/failed
+
+2. **New CLI Flag**:
+   - Added `--pause-between-tasks` flag for strict Ralph mode (human review after each task)
+
+3. **New Configuration Options** (`src/core/config-schema.ts`):
+   - `maxRetriesPerTask: number` (default: 2) - retries per task before marking failed
+   - `autoPush: boolean` (default: false) - auto-push after each task completion
+
+4. **New CheckpointManager Methods** (`src/core/checkpoint-manager.ts`):
+   - `createTaskCheckpoint()` - commits after successful task completion
+   - `createFailureCheckpoint()` - commits after failed task attempt (preserves state for post-mortem)
+
+5. **New GitBranchManager Methods** (`src/core/git-branch-manager.ts`):
+   - `pushToRemote()` - pushes current branch to remote
+   - `hasRemote()` - checks if a remote exists
+
+6. **New ProgressTracker Methods** (`src/core/progress-tracker.ts`):
+   - `loadPreviousTaskResults()` - loads previous task results for context injection
+   - `appendTaskResult()` - appends task result to progress file for tracking
+
+7. **New PlanManager Interface Method** (`src/core/plan-manager.ts`):
+   - `reload?()` - optional method to reload plan from source (already implemented in LocalMarkdownPlan)
+
+8. **Prompt Engineering for Honesty** (`src/core/context-builder.ts`):
+   - Added `HONESTY_GUIDANCE` section to prompt template
+   - Encourages agents to be honest about failures
+   - Documents blockers instead of false completion claims
+
+9. **New STUCK Action** (`src/core/response-parser.ts`, `src/core/action-executor.ts`):
+   - Added `[ACTION:STUCK]` action type for graceful failure signaling
+   - Agents can report: attempted actions, blockers, and suggestions
+   - STUCK triggers retry with fresh agent (benefits from progress documentation)
+
+10. **Utility Function** (`src/utils/shell.ts`):
+    - Added `waitForKeypress()` for `--pause-between-tasks` mode
+
+### Files Modified
+- `src/commands/run.ts` - Core fix with multi-task loop
+- `src/core/config-schema.ts` - New config options
+- `src/core/checkpoint-manager.ts` - Task-level checkpoints
+- `src/core/git-branch-manager.ts` - Push to remote
+- `src/core/progress-tracker.ts` - Multi-task progress tracking
+- `src/core/plan-manager.ts` - Optional reload method
+- `src/core/context-builder.ts` - Honesty guidance in prompt
+- `src/core/response-parser.ts` - STUCK action type
+- `src/core/action-executor.ts` - STUCK action handling
+- `src/utils/shell.ts` - waitForKeypress utility
+- `src/core/config-schema.test.ts` - Updated test for new config keys
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (285 tests passing)
+- `npm run build` ✅
+
+## 2026-01-28 - Model Compatibility Improvements
+
+### Context
+Following the multi-task loop fix, analyzed the `MODEL_COMPAT_TEST_PLAN.md` to address model compatibility concerns:
+1. The `ghcralph init` command had a hardcoded list of 5 models
+2. GitHub Copilot CLI actually offers 14+ models
+3. The SDK provides `client.listModels()` API for dynamic model discovery
+4. No tests existed to validate parsing across different model output styles
+
+### Changes
+
+1. **Dynamic Model Listing** (`src/integrations/copilot-agent.ts`):
+   - Added `listAvailableModels()` instance method - fetches models from existing client
+   - Added static `fetchAvailableModels()` method - creates temporary client to fetch models
+   - Re-exported `ModelInfo` type from SDK for consumers
+
+2. **Dynamic Model Selection in Init** (`src/commands/init.ts`):
+   - Added `fetchModelOptions()` helper that calls `CopilotAgent.fetchAvailableModels()`
+   - Updated model selection prompt to use dynamically fetched models
+   - Falls back to hardcoded list if SDK fetch fails
+   - Maintains "Custom (enter manually)" option
+
+3. **Model Compatibility Tests** (`src/core/model-compatibility.test.ts`):
+   - Created parameterized test suite for response parsing across model variations
+   - Tests CREATE, EDIT, EXECUTE, COMPLETE, and STUCK action parsing
+   - Documents current parser behavior with different formatting styles
+   - Tests edge cases: Windows line endings, mixed case action types, malformed blocks
+
+4. **Updated CopilotAgent Tests** (`src/integrations/copilot-agent.test.ts`):
+   - Added `mockListModels` for SDK mock
+   - Added tests for `listAvailableModels()` and `fetchAvailableModels()`
+   - Tests error handling when SDK fetch fails
+
+### Files Modified
+- `src/integrations/copilot-agent.ts` - listAvailableModels methods
+- `src/integrations/index.ts` - Export ModelInfo type
+- `src/commands/init.ts` - Dynamic model fetching
+- `src/core/model-compatibility.test.ts` - New parameterized tests
+- `src/integrations/copilot-agent.test.ts` - listModels tests
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (305 tests passing)
+- `npm run build` ✅

@@ -55,6 +55,10 @@ export interface RalphConfiguration {
   promptTemplate?: string;
   /** MCP servers for custom tools */
   mcpServers?: MCPServerConfiguration[];
+  /** Maximum retries per task before marking as failed (default: 2) */
+  maxRetriesPerTask?: number;
+  /** Whether to auto-push after each task completion (default: false) */
+  autoPush?: boolean;
 }
 
 /**
@@ -67,6 +71,8 @@ export const DEFAULT_CONFIG: RalphConfiguration = {
   defaultModel: 'gpt-4.1',
   autoCommit: true,
   branchPrefix: 'ghcralph/',
+  maxRetriesPerTask: 2,
+  autoPush: false,
 };
 
 /**
@@ -86,6 +92,8 @@ export const CONFIG_KEYS = [
   'localPlanFile',
   'promptTemplate',
   'mcpServers',
+  'maxRetriesPerTask',
+  'autoPush',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
@@ -117,8 +125,14 @@ export function validateConfigValue(
       }
       break;
     case 'autoCommit':
+    case 'autoPush':
       if (typeof value !== 'boolean') {
-        return { valid: false, error: 'autoCommit must be a boolean' };
+        return { valid: false, error: `${key} must be a boolean` };
+      }
+      break;
+    case 'maxRetriesPerTask':
+      if (typeof value !== 'number' || value < 1) {
+        return { valid: false, error: 'maxRetriesPerTask must be a positive number' };
       }
       break;
     case 'defaultModel':
@@ -143,8 +157,10 @@ export function parseConfigValue(key: ConfigKey, value: string): unknown {
   switch (key) {
     case 'maxIterations':
     case 'maxTokens':
+    case 'maxRetriesPerTask':
       return parseInt(value, 10);
     case 'autoCommit':
+    case 'autoPush':
       return value.toLowerCase() === 'true';
     default:
       return value;

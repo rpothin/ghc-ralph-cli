@@ -69,4 +69,9 @@ export interface PlanManager {
    * Update task progress
    */
   updateProgress(id: string, progress: string): Promise<void>;
+
+  /**
+   * Reload the plan from source (optional, for refreshing state)
+   */
+  reload?(): Promise<void>;
 }

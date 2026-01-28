@@ -10,6 +10,15 @@ import type { Command } from 'commander';
 import { info, success, error, warn, debug, heading, code, dim } from '../utils/index.js';
 import { ConfigManager } from '../core/config-manager.js';
 import type { PlanSource } from '../core/config-schema.js';
+import { CopilotAgent, type ModelInfo } from '../integrations/copilot-agent.js';
+
+// Fallback models if SDK fetch fails
+const FALLBACK_MODELS = [
+  'gpt-4.1',
+  'claude-sonnet-4.5',
+  'gpt-5',
+  'gpt-5.2-codex',
+] as const;
 
 /**
  * Check if we're in a git repository
@@ -128,6 +137,37 @@ async function promptSelect<T extends string>(
 
     console.log(dim('Please enter a valid option number.'));
   }
+}
+
+/**
+ * Fetch available models from the Copilot SDK
+ * Falls back to hardcoded list if fetch fails
+ */
+async function fetchModelOptions(_currentDefault: string): Promise<Array<{ label: string; value: string }>> {
+  debug('Fetching available models from Copilot SDK...');
+  
+  try {
+    const models = await CopilotAgent.fetchAvailableModels();
+    
+    if (models.length > 0) {
+      debug(`Found ${models.length} models from SDK`);
+      const options = models.map((m: ModelInfo) => ({
+        label: m.name || m.id,
+        value: m.id,
+      }));
+      // Add custom option at the end
+      options.push({ label: 'Custom (enter manually)', value: '__custom__' });
+      return options;
+    }
+  } catch (err) {
+    debug(`Failed to fetch models: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  
+  // Fallback to hardcoded list
+  debug('Using fallback model list');
+  const fallbackOptions: Array<{ label: string; value: string }> = FALLBACK_MODELS.map(m => ({ label: m, value: m }));
+  fallbackOptions.push({ label: 'Custom (enter manually)', value: '__custom__' });
+  return fallbackOptions;
 }
 
 export interface InitOptions {
@@ -255,21 +295,15 @@ See also:
             const maxTokens = await promptNumber(rl, 'Max tokens', current.maxTokens);
             configManager.set('maxTokens', maxTokens);
 
-            const modelOptions = [
-              { label: 'gpt-4.1', value: 'gpt-4.1' },
-              { label: 'gpt-4', value: 'gpt-4' },
-              { label: 'gpt-5', value: 'gpt-5' },
-              { label: 'gpt-5.2-codex', value: 'gpt-5.2-codex' },
-              { label: 'claude-sonnet-4.5', value: 'claude-sonnet-4.5' },
-              { label: 'Custom (enter manually)', value: '__custom__' },
-            ] as const;
+            // Fetch available models dynamically from SDK
+            const modelOptions = await fetchModelOptions(current.defaultModel);
 
             const selectedModel = await promptSelect(
               rl,
               'Model',
               modelOptions,
               (modelOptions.some(o => o.value === current.defaultModel)
-                ? (current.defaultModel as (typeof modelOptions)[number]['value'])
+                ? current.defaultModel
                 : '__custom__')
             );
 

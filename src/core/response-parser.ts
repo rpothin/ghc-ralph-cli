@@ -9,7 +9,7 @@
 /**
  * Action types that the AI can request
  */
-export type ActionType = 'CREATE' | 'EDIT' | 'DELETE' | 'EXECUTE' | 'COMPLETE';
+export type ActionType = 'CREATE' | 'EDIT' | 'DELETE' | 'EXECUTE' | 'COMPLETE' | 'STUCK';
 
 /**
  * Base action interface
@@ -63,9 +63,19 @@ export interface CompleteAction extends BaseAction {
 }
 
 /**
+ * Signal that the agent is stuck and cannot proceed
+ */
+export interface StuckAction extends BaseAction {
+  type: 'STUCK';
+  attempted: string;
+  blocker: string;
+  suggestion?: string;
+}
+
+/**
  * Union type of all actions
  */
-export type Action = CreateAction | EditAction | DeleteAction | ExecuteAction | CompleteAction;
+export type Action = CreateAction | EditAction | DeleteAction | ExecuteAction | CompleteAction | StuckAction;
 
 /**
  * Result of parsing a response
@@ -84,7 +94,7 @@ export interface ParseResult {
 /**
  * Action block pattern - matches [ACTION:TYPE] blocks
  */
-const ACTION_BLOCK_PATTERN = /\[ACTION:(CREATE|EDIT|DELETE|EXECUTE|COMPLETE)\]([\s\S]*?)(?=\[ACTION:|$)/gi;
+const ACTION_BLOCK_PATTERN = /\[ACTION:(CREATE|EDIT|DELETE|EXECUTE|COMPLETE|STUCK)\]([\s\S]*?)(?=\[ACTION:|$)/gi;
 
 /**
  * Parse an AI response to extract structured actions
@@ -152,6 +162,8 @@ function parseActionBody(type: ActionType, body: string, raw: string): Action | 
       return parseExecuteAction(body, raw);
     case 'COMPLETE':
       return parseCompleteAction(body, raw);
+    case 'STUCK':
+      return parseStuckAction(body, raw);
     default:
       return null;
   }
@@ -285,10 +297,54 @@ function parseCompleteAction(body: string, raw: string): CompleteAction {
 }
 
 /**
+ * Parse a STUCK action
+ * Expected format:
+ * attempted: what was tried
+ * blocker: what is preventing completion
+ * suggestion: optional suggestion for next steps
+ */
+function parseStuckAction(body: string, raw: string): StuckAction {
+  const attemptedMatch = body.match(/^attempted:\s*(.+)$/m);
+  if (!attemptedMatch?.[1]) {
+    throw new Error('Missing attempted field');
+  }
+  const attempted = attemptedMatch[1].trim();
+
+  const blockerMatch = body.match(/^blocker:\s*(.+)$/m);
+  if (!blockerMatch?.[1]) {
+    throw new Error('Missing blocker field');
+  }
+  const blocker = blockerMatch[1].trim();
+
+  const suggestionMatch = body.match(/^suggestion:\s*(.+)$/m);
+  const suggestion = suggestionMatch?.[1]?.trim();
+
+  const result: StuckAction = {
+    type: 'STUCK',
+    attempted,
+    blocker,
+    raw,
+  };
+
+  if (suggestion) {
+    result.suggestion = suggestion;
+  }
+
+  return result;
+}
+
+/**
  * Check if a response contains a COMPLETE action
  */
 export function hasCompleteAction(result: ParseResult): boolean {
   return result.actions.some((a) => a.type === 'COMPLETE');
+}
+
+/**
+ * Check if a response contains a STUCK action
+ */
+export function hasStuckAction(result: ParseResult): boolean {
+  return result.actions.some((a) => a.type === 'STUCK');
 }
 
 /**
@@ -297,6 +353,14 @@ export function hasCompleteAction(result: ParseResult): boolean {
 export function getCompleteAction(result: ParseResult): CompleteAction | null {
   const action = result.actions.find((a) => a.type === 'COMPLETE');
   return action?.type === 'COMPLETE' ? action : null;
+}
+
+/**
+ * Get the STUCK action if present
+ */
+export function getStuckAction(result: ParseResult): StuckAction | null {
+  const action = result.actions.find((a) => a.type === 'STUCK');
+  return action?.type === 'STUCK' ? action : null;
 }
 
 /**

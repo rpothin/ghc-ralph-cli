@@ -92,6 +92,32 @@ ghcralph run --task "Implement user authentication with JWT" \
 - [ ] Add integration tests
 ```
 
+### Multi-Task Processing
+
+When you run `ghcralph run --file PLAN.md`, Ralph will:
+
+1. **Process ALL tasks** in the plan file automatically
+2. **Create a fresh AI agent** for each task (prevents context pollution)
+3. **Retry failed tasks** up to `maxRetriesPerTask` times (default: 2)
+4. **Commit after each task** with `createTaskCheckpoint()`
+5. **Print a final summary** showing tasks processed/completed/failed
+
+```bash
+# Process all tasks in a plan file
+ghcralph run --file TODO.md
+
+# Pause between tasks for human review (strict Ralph mode)
+ghcralph run --file TODO.md --pause-between-tasks
+```
+
+**Configuration:**
+```json
+{
+  "maxRetriesPerTask": 2,
+  "autoPush": false
+}
+```
+
 ---
 
 ## Pattern: Refactoring Session
@@ -244,6 +270,28 @@ ghcralph rollback --list
 
 # If needed, stop and rollback
 ghcralph rollback --iterations 1
+```
+
+### Task marked as STUCK
+
+If a task is marked as STUCK (agent signaled it cannot complete):
+
+```bash
+# Check the progress file for details on what was attempted
+cat .ghcralph/progress.md
+
+# The agent will retry with fresh context up to maxRetriesPerTask times
+# If all retries fail, review the blocker and consider:
+# 1. Breaking the task into smaller pieces
+# 2. Providing more context with --context
+# 3. Resolving the blocker manually and re-running
+```
+
+**Configure retry behavior:**
+```json
+{
+  "maxRetriesPerTask": 3
+}
 ```
 
 ### Token budget exhausted

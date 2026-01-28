@@ -11,6 +11,7 @@ Run **autonomous, checkpointed coding loops** with GitHub Copilot—designed to 
 
 - 🌿 **Branch isolation**: works on a `ghcralph/*` branch (never modifies `main`/`master` directly)
 - 💾 **Automatic checkpoints**: commits after each iteration for easy rollback
+- 🔄 **Multi-task processing**: processes ALL tasks in plan files automatically
 - 🛡️ **Guardrails**: iteration limits, token budgets, timeouts, circuit breaker on repeated failures
 - 📋 **Flexible plan sources**: GitHub Issues or local Markdown task lists
 - 💻 **Cross-platform**: Windows, macOS, Linux
@@ -76,14 +77,15 @@ This approach prioritizes **safety** (automatic checkpoints, git isolation) and 
 
 ## Key Features
 
-- 🔄 **Autonomous Loop**: Repeatedly invokes AI agent until task completion
+- 🔄 **Multi-Task Loop**: Processes ALL tasks in a plan file automatically with fresh AI agent per task
 - 📋 **Flexible Plan Sources**: GitHub Issues or local Markdown task lists
 - 🛡️ **Safety First**: Git branch isolation, file deletion safeguards
-- 💾 **Automatic Checkpoints**: Git commits after each iteration for easy rollback
+- 💾 **Automatic Checkpoints**: Git commits after each task completion for easy rollback
 - 📊 **Progress Tracking**: Real-time status, token usage, and session logs
-- ⚡ **Guardrails**: Iteration limits, token budgets, timeout controls
+- ⚡ **Guardrails**: Iteration limits, token budgets, timeout controls, task-level retries
 - 🔧 **Highly Configurable**: Customize behavior via CLI, env vars, or config files
 - 💻 **Cross-Platform**: Works on Windows, macOS, and Linux
+- 🤖 **Dynamic Model Discovery**: Fetches available models from Copilot SDK
 
 ## Commands
 
@@ -157,6 +159,9 @@ ghcralph run --github
 # Control iterations, tokens, and model via configuration
 # (set maxIterations / maxTokens / defaultModel in .ghcralph/config.json)
 
+# Pause between tasks for human review (strict Ralph mode)
+ghcralph run --file PLAN.md --pause-between-tasks
+
 # Specify context files
 ghcralph run --task "Fix tests" --context "src/**/*.test.ts"
 
@@ -184,19 +189,21 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 
 ### Configuration Options
 
-| Option          | Default     | Description                                           |
-| --------------- | ----------- | ----------------------------------------------------- |
-| `planSource`    | `local`     | Plan source: `github` or `local`                      |
-| `maxIterations` | `10`        | Maximum loop iterations                               |
-| `maxTokens`     | `100000`    | Token budget                                          |
-| `defaultModel`  | `gpt-4.1`   | Copilot model to use                                  |
-| `autoCommit`    | `true`      | Auto-commit after iterations                          |
-| `branchPrefix`  | `ghcralph/` | Prefix for GitHub Copilot Ralph branches              |
-| `githubRepo`    | -           | GitHub repository (owner/repo) for GitHub plan source |
-| `githubLabel`   | -           | Default GitHub issue label filter for GitHub plan      |
-| `githubMilestone` | -         | Default GitHub issue milestone filter for GitHub plan  |
-| `githubAssignee` | -          | Default GitHub issue assignee filter for GitHub plan   |
-| `localPlanFile` | -           | Path to local plan file                               |
+| Option             | Default     | Description                                           |
+| ------------------ | ----------- | ----------------------------------------------------- |
+| `planSource`       | `local`     | Plan source: `github` or `local`                      |
+| `maxIterations`    | `10`        | Maximum loop iterations per task                      |
+| `maxTokens`        | `100000`    | Token budget per task                                 |
+| `defaultModel`     | `gpt-4.1`   | Copilot model to use (dynamically fetched from SDK)   |
+| `autoCommit`       | `true`      | Auto-commit after iterations                          |
+| `branchPrefix`     | `ghcralph/` | Prefix for GitHub Copilot Ralph branches              |
+| `maxRetriesPerTask`| `2`         | Retries per task before marking as failed             |
+| `autoPush`         | `false`     | Auto-push to remote after each task completion        |
+| `githubRepo`       | -           | GitHub repository (owner/repo) for GitHub plan source |
+| `githubLabel`      | -           | Default GitHub issue label filter for GitHub plan     |
+| `githubMilestone`  | -           | Default GitHub issue milestone filter for GitHub plan |
+| `githubAssignee`   | -           | Default GitHub issue assignee filter for GitHub plan  |
+| `localPlanFile`    | -           | Path to local plan file                               |
 
 ### Environment Variables
 
@@ -208,6 +215,8 @@ export GHCRALPH_MAX_TOKENS=50000
 export GHCRALPH_DEFAULT_MODEL=gpt-4.1
 export GHCRALPH_AUTO_COMMIT=true
 export GHCRALPH_BRANCH_PREFIX=ghcralph/
+export GHCRALPH_MAX_RETRIES_PER_TASK=3
+export GHCRALPH_AUTO_PUSH=true
 export GHCRALPH_PLAN_SOURCE=local
 export GHCRALPH_GITHUB_REPO=owner/repo
 export GHCRALPH_GITHUB_LABEL=ralph-ready
@@ -225,6 +234,8 @@ export GHCRALPH_GITHUB_ASSIGNEE=octocat
   "defaultModel": "gpt-4.1",
   "autoCommit": true,
   "branchPrefix": "ghcralph/",
+  "maxRetriesPerTask": 2,
+  "autoPush": false,
   "githubRepo": "owner/repo",
   "githubLabel": "ralph-ready",
   "githubMilestone": "v1.0",

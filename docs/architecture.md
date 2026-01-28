@@ -457,6 +457,8 @@ graph LR
 | **Context accumulation**       | Model drifts with long context           | Conversation history accumulates        | ✅ FIXED |
 | **Complex prompt template**    | Meta-info confuses weaker models         | Iteration/token counts in prompt        | ✅ FIXED |
 | **Model sensitivity**          | Weaker models perform poorly             | Prompt relies on implicit understanding | ✅ FIXED |
+| **Single task per run**        | Only first task processed, then exits    | No outer loop for multi-task iteration  | ✅ FIXED v0.1.2 |
+| **Hardcoded model list**       | Init shows outdated model options        | Model list not fetched from SDK         | ✅ FIXED v0.1.2 |
 
 ### Current vs Expected Flow
 
@@ -538,19 +540,37 @@ graph LR
 The action executor component has been implemented in `src/core/action-executor.ts`:
 
 **Supported Actions:**
-| Action     | Description        | Example                                         |
-| ---------- | ------------------ | ----------------------------------------------- |
-| `CREATE`   | Create a new file  | `[ACTION:CREATE] path: file.txt`                |
-| `EDIT`     | Edit existing file | `[ACTION:EDIT] path: file.txt [OLD]...[NEW]...` |
-| `DELETE`   | Delete a file      | `[ACTION:DELETE] path: file.txt`                |
-| `EXECUTE`  | Run shell command  | `[ACTION:EXECUTE] command: npm test`            |
-| `COMPLETE` | Mark task done     | `[ACTION:COMPLETE] reason: Tests pass`          |
+| Action     | Description                | Example                                         |
+| ---------- | -------------------------- | ----------------------------------------------- |
+| `CREATE`   | Create a new file          | `[ACTION:CREATE] path: file.txt`                |
+| `EDIT`     | Edit existing file         | `[ACTION:EDIT] path: file.txt [OLD]...[NEW]...` |
+| `DELETE`   | Delete a file              | `[ACTION:DELETE] path: file.txt`                |
+| `EXECUTE`  | Run shell command          | `[ACTION:EXECUTE] command: npm test`            |
+| `COMPLETE` | Mark task done             | `[ACTION:COMPLETE] reason: Tests pass`          |
+| `STUCK`    | Signal blocked/unable      | `[ACTION:STUCK] attempted:... blocker:...`      |
 
 **Safety Features:**
 - Path validation (prevents escaping working directory)
 - File safeguard integration (protects baseline files from deletion)
 - Command timeout (30 seconds default)
 - Dry run mode for testing
+
+### 2.1.1 STUCK Action ✅ NEW in v0.1.2
+
+The STUCK action allows the AI agent to signal when it cannot complete a task:
+
+```
+[ACTION:STUCK]
+attempted: What the agent tried to do
+blocker: What is preventing completion
+suggestion: Optional suggestion for next steps
+```
+
+**Behavior:**
+- STUCK triggers a task retry with a fresh AI agent
+- The progress file documents the failed attempt for context
+- After `maxRetriesPerTask` (default: 2) STUCKs, the task is marked failed
+- Prevents false completion claims - encourages honest failure reporting
 
 ### 2.2 Verification Hooks ✅ IMPLEMENTED
 
@@ -898,16 +918,19 @@ graph TB
 The current architecture successfully:
 - ✅ Authenticates with GitHub Copilot
 - ✅ Manages iteration loops with limits and guards
+- ✅ **Processes ALL tasks in plan files** (multi-task loop)
+- ✅ Creates **fresh AI agent per task** (Ralph pattern core)
 - ✅ Builds context-rich prompts
 - ✅ Sends/receives from Copilot SDK
 - ✅ Tracks progress and tokens
+- ✅ Parses structured ACTION responses
+- ✅ Executes file and shell actions
+- ✅ Supports graceful failure with STUCK action
+- ✅ Dynamic model discovery from SDK
 
-The current architecture lacks:
-- ❌ Structured output format specification
-- ❌ Response parsing for file operations
-- ❌ Action execution (file create/edit/delete)
-- ❌ Command execution for verification
-- ❌ Feedback loop to inform AI of results
-- ❌ Clear task completion detection
-
-To work reliably with models like gpt-4.1, the CLI needs to move from a "chat wrapper" to a true "agent executor" that defines explicit action formats, parses responses, executes actions, and provides feedback.
+The CLI has evolved from a "chat wrapper" to a true "agent executor" that:
+1. Defines explicit action formats (CREATE, EDIT, DELETE, EXECUTE, COMPLETE, STUCK)
+2. Parses AI responses for structured actions
+3. Executes actions on the filesystem
+4. Provides feedback to inform subsequent iterations
+5. Processes multiple tasks with task-level retries and checkpoints

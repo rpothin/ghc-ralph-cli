@@ -253,4 +253,94 @@ export class ProgressTracker {
       // File doesn't exist
     }
   }
+
+  /**
+   * Load previous task results from progress file for context injection.
+   * Returns a formatted summary of previous task attempts.
+   */
+  async loadPreviousTaskResults(): Promise<string> {
+    const filePath = this.getProgressFilePath();
+
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      
+      // Extract iteration log section if it exists
+      const iterationLogMatch = content.match(/### Iteration Log\n\n([\s\S]*?)(?=\n## |$)/);
+      const taskResultsMatch = content.match(/### Task Results\n\n([\s\S]*?)(?=\n## |$)/);
+      
+      const parts: string[] = [];
+      
+      if (iterationLogMatch?.[1]) {
+        parts.push('## Previous Iteration Progress\n' + iterationLogMatch[1].trim());
+      }
+      
+      if (taskResultsMatch?.[1]) {
+        parts.push('## Previous Task Results\n' + taskResultsMatch[1].trim());
+      }
+      
+      return parts.join('\n\n');
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Append a task result to the progress file.
+   * Used to track multi-task execution progress.
+   */
+  async appendTaskResult(
+    task: { id: string; title: string },
+    status: 'completed' | 'failed' | 'stuck',
+    attempt: number,
+    summary?: string,
+    error?: string
+  ): Promise<void> {
+    const filePath = this.getProgressFilePath();
+    const dir = path.dirname(filePath);
+
+    await fs.mkdir(dir, { recursive: true });
+
+    const timestamp = new Date().toISOString();
+    const statusEmoji = status === 'completed' ? '✅' : status === 'stuck' ? '🔄' : '❌';
+    
+    let entry = `\n#### ${statusEmoji} Task: ${task.title}\n\n`;
+    entry += `- **ID**: ${task.id}\n`;
+    entry += `- **Status**: ${status}\n`;
+    entry += `- **Attempt**: ${attempt}\n`;
+    entry += `- **Timestamp**: ${timestamp}\n`;
+    
+    if (summary) {
+      entry += `- **Summary**: ${summary}\n`;
+    }
+    
+    if (error) {
+      entry += `- **Error**: ${error}\n`;
+    }
+    
+    entry += '\n';
+
+    try {
+      // Check if file exists
+      let content = '';
+      try {
+        content = await fs.readFile(filePath, 'utf-8');
+      } catch {
+        // File doesn't exist, create with header
+        content = '# Ralph Progress Log\n\n## Task Results\n';
+      }
+
+      // If Task Results section doesn't exist, add it
+      if (!content.includes('## Task Results')) {
+        content += '\n## Task Results\n';
+      }
+
+      // Append the entry at the end
+      content += entry;
+
+      await fs.writeFile(filePath, content, 'utf-8');
+      debug(`Appended task result for ${task.id} to ${filePath}`);
+    } catch (err) {
+      debug(`Failed to append task result: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 }
