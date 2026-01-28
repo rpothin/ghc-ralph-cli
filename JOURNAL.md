@@ -1507,3 +1507,36 @@ All 6 issues from the v0.1.3 remediation plan have been addressed:
 **Total tests**: 311 passing
 **New features**: 3 config options (pushStrategy, progressVerbosity, task context)
 **Dependencies added**: async-mutex
+
+## 2026-01-28 - Documentation Alignment for v0.1.3
+
+### Context
+Reviewed and updated all documentation to align with v0.1.3 changes.
+
+### Changes to docs/architecture.md
+- Added 6 new issues to "Identified Issues" table (all marked as fixed in v0.1.3)
+- Added new "v0.1.3 Enhancements" section with detailed documentation:
+  - Session-based progress tracking (RunSession, TaskResult interfaces)
+  - Git mutex protection (async-mutex usage)
+  - Configurable push strategy (per-task/per-run/manual)
+  - Progress verbosity configuration (minimal/standard/full)
+  - Task-numbered commit messages (task X/Y format)
+  - Honesty guidance and failure warnings
+- Updated Summary checklist with new capabilities
+
+### Changes to docs/cookbook.md
+- Updated multi-task configuration example with new options
+- Added Push Strategies documentation section
+- Added Progress Verbosity documentation section
+- Added new troubleshooting sections:
+  - Git lock errors (now fixed with mutex)
+  - Push to remote configuration
+  - Progress file verbosity settings
+
+### Files Modified
+- `docs/architecture.md` - v0.1.3 feature documentation
+- `docs/cookbook.md` - Configuration examples and troubleshooting
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing)
