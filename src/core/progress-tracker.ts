@@ -156,7 +156,9 @@ export class ProgressTracker {
       this.startSession();
     }
     
-    this.session!.currentTask = {
+    // Session is guaranteed to exist after startSession()
+    const session = this.session as RunSession;
+    session.currentTask = {
       taskId: state.task.id,
       taskTitle: state.task.title,
       taskNumber,
@@ -178,6 +180,9 @@ export class ProgressTracker {
       this.startSession();
     }
 
+    // Session is guaranteed to exist after startSession()
+    const session = this.session as RunSession;
+
     const result: TaskResult = {
       taskId: state.task.id,
       taskTitle: state.task.title,
@@ -193,8 +198,8 @@ export class ProgressTracker {
     if (summary) result.summary = summary;
     if (error) result.error = error;
 
-    this.session!.completedTasks.push(result);
-    this.session!.currentTask = undefined;
+    session.completedTasks.push(result);
+    session.currentTask = undefined;
 
     // Persist full history to file
     await this.saveFullSession();

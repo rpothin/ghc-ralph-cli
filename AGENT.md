@@ -37,6 +37,13 @@ npm run typecheck
 npm test
 ```
 
+**IMPORTANT**: Always run `npm run lint` before committing. The project uses strict ESLint rules that CI will enforce. Common lint violations to avoid:
+
+- **No non-null assertions (`!`)**: Use type narrowing or type assertions (`as Type`) instead of `!`
+- **No unused variables**: Remove or use all declared variables
+- **No explicit `any`**: Use proper types or `unknown`
+- **No floating promises**: Always `await` or handle promises
+
 ## Working rules
 
 1. **Understand the request**
@@ -54,9 +61,10 @@ npm test
    - Tests are typically colocated under `src/**.test.ts` and run via Vitest.
    - Keep tests deterministic (no network, no time-dependent flakiness).
 
-5. **Validate**
-   - Run the quality gates above.
+5. **Validate before committing**
+   - Run the quality gates above: `npm run typecheck && npm run lint && npm test`
    - If a check fails, fix the root cause (do not disable checks).
+   - **Never commit without running lint** - CI will catch violations.
 
 ## Repo-specific conventions
 
