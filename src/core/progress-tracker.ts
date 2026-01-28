@@ -10,6 +10,7 @@ import path from 'node:path';
 import { getLocalStateDir } from '../utils/paths.js';
 import { debug } from '../utils/output.js';
 import type { FullLoopState, IterationRecord } from './loop-state.js';
+import type { ProgressVerbosity } from './config-schema.js';
 
 /**
  * Progress file name
@@ -105,10 +106,19 @@ export class ProgressTracker {
   private projectRoot: string | undefined;
   private maxIterations: number;
   private session: RunSession | null = null;
+  private verbosity: ProgressVerbosity;
 
-  constructor(projectRoot?: string, maxIterations: number = 10) {
+  constructor(projectRoot?: string, maxIterations: number = 10, verbosity: ProgressVerbosity = 'standard') {
     this.projectRoot = projectRoot;
     this.maxIterations = maxIterations;
+    this.verbosity = verbosity;
+  }
+
+  /**
+   * Set verbosity level
+   */
+  setVerbosity(verbosity: ProgressVerbosity): void {
+    this.verbosity = verbosity;
   }
 
   /**
@@ -357,6 +367,11 @@ export class ProgressTracker {
     const time = iter.startedAt.toLocaleTimeString();
     const status = iter.success ? '✓' : '✗';
 
+    // Minimal verbosity: just iteration header and status
+    if (this.verbosity === 'minimal') {
+      return `#### Iteration ${iter.iteration} (${time}) ${status}\n\n`;
+    }
+
     let md = `#### Iteration ${iter.iteration} (${time}) ${status}\n\n`;
     md += `- **Tokens**: ${iter.tokensUsed.toLocaleString()}\n`;
 
@@ -371,6 +386,25 @@ export class ProgressTracker {
     if (iter.endedAt) {
       const duration = iter.endedAt.getTime() - iter.startedAt.getTime();
       md += `- **Duration**: ${Math.floor(duration / 1000)}s\n`;
+    }
+
+    // Full verbosity: include raw response if available
+    if (this.verbosity === 'full' && iter.rawResponse) {
+      md += `\n**Agent Response**:\n`;
+      md += `> ${iter.rawResponse.replace(/\n/g, '\n> ')}\n`;
+    }
+
+    // Full verbosity: include actions executed if available
+    if (this.verbosity === 'full' && iter.actions && iter.actions.length > 0) {
+      md += `\n**Actions Executed**:\n`;
+      for (const action of iter.actions) {
+        const actionStatus = action.success ? '✓' : '✗';
+        md += `${actionStatus} [${action.type}]`;
+        if (action.summary) {
+          md += ` ${action.summary}`;
+        }
+        md += '\n';
+      }
     }
 
     md += `\n`;

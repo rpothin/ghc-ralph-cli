@@ -1430,3 +1430,80 @@ Continuing the v0.1.3 remediation plan with Phase 2 (Reliability Improvements).
 - `npm run typecheck` ✅
 - `npm test` ✅ (311 tests passing)
 - `npm run build` ✅
+
+## 2026-01-28 - v0.1.3 Remediation: Phase 3 UX Polish
+
+### Context
+Completing the v0.1.3 remediation plan with Phase 3 (UX Polish).
+
+### Issue #6: Git Commit Message Format
+
+**Problem**: Every task started with "iteration 1", making git history confusing. No global context of task position in plan.
+
+**Solution**: Added task X/Y numbering to commit messages:
+- New `TaskContext` interface with `taskNumber` and `totalTasks`
+- Updated `createCheckpoint()` to format: `ghcralph: task X/Y iter N - summary`
+- Updated `createTaskCheckpoint()` to format: `ghcralph: task X/Y complete - title`
+- Falls back to old format when no plan context available (single tasks)
+- Task count computed from `planManager.getTasks()` at run start
+
+**Files Modified**:
+- `src/core/checkpoint-manager.ts` - TaskContext interface, updated message formatting
+- `src/core/index.ts` - Export TaskContext type
+- `src/commands/run.ts` - Compute totalTasksInPlan and pass TaskContext to checkpoints
+
+### Issue #5: Progress File Verbosity
+
+**Problem**: Progress file only contained minimal summary, not useful for debugging.
+
+**Solution**: Added configurable `progressVerbosity` option:
+- New config option: `progressVerbosity?: 'minimal' | 'standard' | 'full'`
+  - `minimal`: Just iteration header and status (for CI)
+  - `standard` (default): Tokens, summary, error, duration
+  - `full`: Standard + raw response + actions executed
+- ProgressTracker constructor accepts verbosity parameter
+- Extended `IterationRecord` with optional `rawResponse` and `actions` fields
+
+**Files Modified**:
+- `src/core/config-schema.ts` - Added ProgressVerbosity type and config option
+- `src/core/progress-tracker.ts` - Verbosity-aware formatIteration()
+- `src/core/loop-state.ts` - Extended IterationRecord interface
+- `src/core/index.ts` - Export ProgressVerbosity type
+- `src/commands/run.ts` - Pass progressVerbosity to ProgressTracker
+
+### Documentation Updates
+
+**Problem**: README didn't document new configuration options.
+
+**Solution**: Updated README.md with:
+- New config options: `pushStrategy`, `progressVerbosity` in table
+- New environment variables: `GHCRALPH_PUSH_STRATEGY`, `GHCRALPH_PROGRESS_VERBOSITY`
+- Updated example config file with new options
+- Updated checkpoint message format documentation
+
+**Files Modified**:
+- `README.md` - Configuration tables and examples
+
+### Validation
+- `npm run typecheck` ✅
+- `npm test` ✅ (311 tests passing)
+- `npm run build` ✅
+
+---
+
+## Summary: v0.1.3 Remediation Complete
+
+All 6 issues from the v0.1.3 remediation plan have been addressed:
+
+| Issue | Description | Solution |
+|-------|-------------|----------|
+| #1 | Progress file not persisting task history | Session-based multi-task tracking |
+| #2 | CLI doesn't push to remote | Configurable pushStrategy |
+| #3 | Git lock race conditions | Mutex-protected git operations |
+| #4 | AI claims completion despite failures | Honesty guidance + COMPLETE warning |
+| #5 | Insufficient iteration log detail | Configurable progressVerbosity |
+| #6 | Confusing commit message format | Task X/Y numbering in messages |
+
+**Total tests**: 311 passing
+**New features**: 3 config options (pushStrategy, progressVerbosity, task context)
+**Dependencies added**: async-mutex

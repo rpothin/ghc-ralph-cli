@@ -26,6 +26,16 @@ export interface CheckpointConfig {
 }
 
 /**
+ * Task context for commit messages - provides "task X/Y" numbering
+ */
+export interface TaskContext {
+  /** 1-indexed position of current task in the plan */
+  taskNumber: number;
+  /** Total number of tasks in the plan */
+  totalTasks: number;
+}
+
+/**
  * Default configuration
  */
 const DEFAULT_CONFIG: CheckpointConfig = {
@@ -157,11 +167,16 @@ export class CheckpointManager {
 
   /**
    * Create a checkpoint commit (mutex-protected)
+   * @param iteration - Iteration number within the current task
+   * @param summary - Summary of changes made
+   * @param tokensUsed - Tokens used in this iteration
+   * @param taskContext - Optional task context for "task X/Y" numbering in commit message
    */
   async createCheckpoint(
     iteration: number,
     summary: string,
-    tokensUsed: number
+    tokensUsed: number,
+    taskContext?: TaskContext
   ): Promise<Checkpoint | null> {
     if (!this.config.autoCommit) {
       debug('Auto-commit disabled, skipping checkpoint');
@@ -186,12 +201,17 @@ export class CheckpointManager {
         return null;
       }
 
-      // Build commit message
-      const truncatedSummary = summary.length > 50 
-        ? summary.substring(0, 47) + '...'
+      // Build commit message with optional task context
+      const truncatedSummary = summary.length > 40 
+        ? summary.substring(0, 37) + '...'
         : summary;
       
-      const message = `${this.config.messagePrefix} iteration ${iteration} - ${truncatedSummary}`;
+      let message: string;
+      if (taskContext) {
+        message = `${this.config.messagePrefix} task ${taskContext.taskNumber}/${taskContext.totalTasks} iter ${iteration} - ${truncatedSummary}`;
+      } else {
+        message = `${this.config.messagePrefix} iteration ${iteration} - ${truncatedSummary}`;
+      }
       const fullMessage = `${message}\n\nTokens used: ${tokensUsed}\nFiles modified: ${filesModified.length}`;
 
       try {
@@ -352,11 +372,16 @@ export class CheckpointManager {
 
   /**
    * Create a task completion checkpoint commit (mutex-protected)
+   * @param taskTitle - Title of the completed task
+   * @param taskId - ID of the completed task
+   * @param summary - Summary of the task completion
+   * @param taskContext - Optional task context for "task X/Y" numbering in commit message
    */
   async createTaskCheckpoint(
     taskTitle: string,
     taskId: string,
-    summary: string
+    summary: string,
+    taskContext?: TaskContext
   ): Promise<Checkpoint | null> {
     if (!this.config.autoCommit) {
       debug('Auto-commit disabled, skipping task checkpoint');
@@ -380,12 +405,17 @@ export class CheckpointManager {
         return null;
       }
 
-      // Build commit message for task completion
+      // Build commit message for task completion with optional task context
       const truncatedTitle = taskTitle.length > 40 
         ? taskTitle.substring(0, 37) + '...'
         : taskTitle;
       
-      const message = `${this.config.messagePrefix} task complete - ${truncatedTitle}`;
+      let message: string;
+      if (taskContext) {
+        message = `${this.config.messagePrefix} task ${taskContext.taskNumber}/${taskContext.totalTasks} complete - ${truncatedTitle}`;
+      } else {
+        message = `${this.config.messagePrefix} task complete - ${truncatedTitle}`;
+      }
       const fullMessage = `${message}\n\nTask ID: ${taskId}\nSummary: ${summary}\nFiles modified: ${filesModified.length}`;
 
       try {

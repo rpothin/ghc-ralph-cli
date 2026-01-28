@@ -10,6 +10,11 @@
 export type PlanSource = 'github' | 'local';
 
 /**
+ * Progress file verbosity level
+ */
+export type ProgressVerbosity = 'minimal' | 'standard' | 'full';
+
+/**
  * MCP Server configuration for custom tools
  */
 export interface MCPServerConfiguration {
@@ -61,6 +66,8 @@ export interface RalphConfiguration {
   autoPush?: boolean;
   /** Push strategy: 'per-task' pushes after each task, 'per-run' pushes after all tasks complete (default: 'per-task') */
   pushStrategy?: 'per-task' | 'per-run' | 'manual';
+  /** Progress file verbosity level: 'minimal' for CI, 'standard' for normal use, 'full' for debugging (default: 'standard') */
+  progressVerbosity?: ProgressVerbosity;
 }
 
 /**
@@ -76,6 +83,7 @@ export const DEFAULT_CONFIG: RalphConfiguration = {
   maxRetriesPerTask: 2,
   autoPush: false,
   pushStrategy: 'per-task',
+  progressVerbosity: 'standard',
 };
 
 /**
@@ -98,6 +106,7 @@ export const CONFIG_KEYS = [
   'maxRetriesPerTask',
   'autoPush',
   'pushStrategy',
+  'progressVerbosity',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
@@ -142,6 +151,11 @@ export function validateConfigValue(
     case 'pushStrategy':
       if (value !== 'per-task' && value !== 'per-run' && value !== 'manual') {
         return { valid: false, error: 'pushStrategy must be "per-task", "per-run", or "manual"' };
+      }
+      break;
+    case 'progressVerbosity':
+      if (value !== 'minimal' && value !== 'standard' && value !== 'full') {
+        return { valid: false, error: 'progressVerbosity must be "minimal", "standard", or "full"' };
       }
       break;
     case 'defaultModel':

@@ -24,6 +24,14 @@ export interface IterationRecord {
   summary?: string;
   /** Error if the iteration failed */
   error?: string;
+  /** Raw AI response (for full verbosity logging) */
+  rawResponse?: string;
+  /** Actions executed in this iteration (for full verbosity logging) */
+  actions?: Array<{
+    type: string;
+    success: boolean;
+    summary?: string;
+  }>;
 }
 
 /**
