@@ -1,5 +1,28 @@
 # GitHub Copilot Ralph CLI (`ghcralph`)
 
+> [!WARNING]
+> ## ARCHIVED — No Longer Maintained
+>
+> **This project is archived and will no longer be maintained.**
+>
+> When this CLI was built, running autonomous agentic coding loops with GitHub Copilot required wiring up a lot of plumbing by hand. That gap no longer exists.
+>
+> ### What to use instead
+>
+> For most use cases, **native GitHub Copilot CLI features are now the recommended path**:
+>
+> - **[`gh copilot` autopilot + fleet](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line)** — GitHub's own agentic loop capabilities, built directly into the `gh` CLI. Start with a "research" or "plan" prompt to scope your task, then let autopilot drive.  
+>   👉 *Recommended first stop for most developers.*
+>
+> - **[@bradygaster/squad](https://github.com/bradygaster/squad)** — For more complex, multi-agent setups where you need a full AI development team with persistent identity, parallel execution, and programmable orchestration.  
+>   👉 *Recommended for teams and larger-scale agentic workflows.*
+>
+> Thank you to everyone who tried, used, and contributed to `ghcralph`. The ideas behind it — safety, checkpoints, reversibility, and human control — are still worth caring about, and they're increasingly showing up in the tools above.
+>
+> — [@rpothin](https://github.com/rpothin)
+
+---
+
 [![CI](https://github.com/rpothin/ghc-ralph-cli/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/rpothin/ghc-ralph-cli/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ghcralph.svg)](https://www.npmjs.com/package/ghcralph)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -200,7 +223,7 @@ GitHub Copilot Ralph uses a hierarchical configuration system:
 | `maxRetriesPerTask` | `2`         | Retries per task before marking as failed                                       |
 | `autoPush`          | `false`     | Auto-push to remote after task completion                                       |
 | `pushStrategy`      | `per-task`  | When to push: `per-task`, `per-run`, or `manual`                                |
-| `progressVerbosity` | `standard`  | Progress file detail level: `minimal`, `standard` (+ actions), or `full` |
+| `progressVerbosity` | `standard`  | Progress file detail level: `minimal`, `standard` (+ actions), or `full`       |
 | `githubRepo`        | -           | GitHub repository (owner/repo) for GitHub plan source                           |
 | `githubLabel`       | -           | Default GitHub issue label filter for GitHub plan                               |
 | `githubMilestone`   | -           | Default GitHub issue milestone filter for GitHub plan                           |
@@ -357,7 +380,7 @@ GitHub Copilot Ralph is built on these principles:
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+This repository is archived. No new contributions are being accepted.
 
 ## License
 
