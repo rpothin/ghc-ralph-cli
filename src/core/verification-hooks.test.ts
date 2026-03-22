@@ -16,7 +16,20 @@ describe('VerificationManager', () => {
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    // On Windows, a recently-killed child process (e.g. from a timeout test) may
+    // briefly hold a lock on its working directory. Retry with back-off before giving up.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        break;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'EBUSY' && attempt < 4) {
+          await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+        } else {
+          throw err;
+        }
+      }
+    }
   });
 
   describe('initialize', () => {
